@@ -79,9 +79,9 @@ export default function MonthlyTrafficStats({ streamId }: MonthlyTrafficStatsPro
             tableData.map((row, index) => (
               <TableRow key={index}>
                 <TableCell>{row.month}</TableCell>
-                <TableCell>{formatBytes(Number(stat.bytesIn))}</TableCell>
-                <TableCell>{formatBytes(Number(stat.bytesOut))}</TableCell>
-                <TableCell>{formatBytes(Number(stat.bytesIn) + Number(stat.bytesOut))}</TableCell>
+                <TableCell>{formatBytes(row.bytesIn)}</TableCell>
+                <TableCell>{formatBytes(row.bytesOut)}</TableCell>
+                <TableCell>{formatBytes(row.bytesIn + row.bytesOut)}</TableCell>
                 <TableCell className="text-muted-foreground">{row.lastUpdated}</TableCell>
               </TableRow>
             ))
