@@ -3,13 +3,19 @@ import type { Stream, Server, User, Permission } from "@db/schema";
 // Matches Flussonic API spec from OpenAPI docs
 export interface StreamStats {
   name: string;
-  alive: boolean;
-  input?: {
-    bitrate: number;
+  stats: {
+    alive: boolean;
+    status: string;
     bytes_in: number;
-    time: number;
+    bytes_out: number;
+    input_bitrate: number;
+    online_clients: number;
+    last_access_at: number;
+    last_dts: number;
   };
-  clients: number;
+  template?: string;
+  static: boolean;
+  nomedia: boolean;
 }
 
 export interface StreamWithStats extends Stream {

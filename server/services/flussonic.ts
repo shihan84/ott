@@ -17,17 +17,23 @@ interface FlussonicError {
 }
 
 // API types based on Flussonic Media Server OpenAPI spec
-interface FlussonicInputStream {
-  bitrate: number;
+interface FlussonicStats {
+  alive: boolean;
+  status: string;
   bytes_in: number;
-  time: number;
+  bytes_out: number;
+  input_bitrate: number;
+  online_clients: number;
+  last_access_at: number;
+  last_dts: number;
 }
 
 interface FlussonicStream {
   name: string;
-  alive: boolean;
-  input?: FlussonicInputStream;
-  clients: number;
+  stats: FlussonicStats;
+  template?: string;
+  static: boolean;
+  nomedia: boolean;
 }
 
 interface FlussonicStreamsResponse {
@@ -81,17 +87,23 @@ export class FlussonicService {
       // Map response to our FlussonicStream type
       const streams = response.streams.map(stream => {
         // Log individual stream data for debugging
-        console.log('Processing stream:', stream);
+        console.log('Processing stream:', JSON.stringify(stream, null, 2));
         
         return {
           name: stream.name,
-          alive: !!stream.alive, // Convert to boolean
-          clients: typeof stream.clients === 'number' ? stream.clients : 0,
-          input: stream.input ? {
-            bitrate: typeof stream.input.bitrate === 'number' ? stream.input.bitrate : 0,
-            bytes_in: typeof stream.input.bytes_in === 'number' ? stream.input.bytes_in : 0,
-            time: typeof stream.input.time === 'number' ? stream.input.time : 0
-          } : undefined
+          stats: {
+            alive: stream.stats?.alive || false,
+            status: stream.stats?.status || 'unknown',
+            bytes_in: stream.stats?.bytes_in || 0,
+            bytes_out: stream.stats?.bytes_out || 0,
+            input_bitrate: stream.stats?.input_bitrate || 0,
+            online_clients: stream.stats?.online_clients || 0,
+            last_access_at: stream.stats?.last_access_at || 0,
+            last_dts: stream.stats?.last_dts || Math.floor(Date.now() / 1000)
+          },
+          template: stream.template,
+          static: stream.static || false,
+          nomedia: stream.nomedia || false
         };
       });
 

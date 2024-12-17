@@ -327,26 +327,28 @@ function ServerManagementContent({ isOpen, setIsOpen }: ServerManagementContentP
                                     <TableRow key={stream.id}>
                                       <TableCell className="font-medium">{stream.name}</TableCell>
                                       <TableCell>
-                                        <Badge variant={stream.streamStatus?.alive ? 'default' : 'secondary'}>
+                                        <Badge variant={stream.streamStatus?.stats.alive ? 'default' : 'secondary'}>
                                           <Activity className="w-4 h-4 mr-1" />
-                                          {stream.streamStatus?.alive ? 'Online' : 'Offline'}
+                                          {stream.streamStatus?.stats.alive ? 'Online' : 'Offline'}
                                         </Badge>
                                       </TableCell>
                                       <TableCell>
                                         <div className="flex items-center">
                                           <Users className="w-4 h-4 mr-1" />
-                                          {stream.streamStatus?.clients || 0}
+                                          {stream.streamStatus?.stats.online_clients || 0}
                                         </div>
                                       </TableCell>
                                       <TableCell>
                                         <div className="flex items-center">
                                           <Wifi className="w-4 h-4 mr-1" />
-                                          {stream.streamStatus?.input ? `${Math.round(stream.streamStatus.input.bitrate / 1024)} Kbps` : 'N/A'}
+                                          {stream.streamStatus?.stats.input_bitrate 
+                                            ? `${Math.round(stream.streamStatus.stats.input_bitrate / 1024)} Kbps` 
+                                            : 'N/A'}
                                         </div>
                                       </TableCell>
                                       <TableCell>
-                                        {stream.streamStatus?.alive && stream.streamStatus.input
-                                          ? formatDistanceToNow(Date.now() - stream.streamStatus.input.time * 1000, { addSuffix: true })
+                                        {stream.streamStatus?.stats.alive && stream.streamStatus.stats.last_dts
+                                          ? formatDistanceToNow(new Date(stream.streamStatus.stats.last_dts * 1000), { addSuffix: true })
                                           : 'Offline'
                                         }
                                       </TableCell>
