@@ -8,6 +8,9 @@ import { eq, sql, and, between } from "drizzle-orm";
 import type { FlussonicStreamsResponse } from "./flussonic";
 import { flussonicService, StreamStatisticsService } from "./services/flussonic";
 import { crypto } from "./auth";
+import { ThumbnailService } from "./services/thumbnail";
+import express from "express";
+import path from "path";
 
 // Extend Express Request type to include our User type
 declare global {
@@ -557,6 +560,51 @@ export function registerRoutes(app: Express): Server {
       timestamp: new Date().toISOString(),
       uptime: process.uptime()
     });
+  });
+
+  // Serve thumbnails statically
+  app.use('/thumbnails', express.static(path.join(process.cwd(), 'public', 'thumbnails')));
+
+  // Endpoint to manually trigger thumbnail generation
+  app.post("/api/streams/:streamId/thumbnail", requireAuth, async (req, res) => {
+    try {
+      const streamId = parseInt(req.params.streamId);
+      const [stream] = await db
+        .select()
+        .from(streams)
+        .where(eq(streams.id, streamId))
+        .limit(1);
+
+      if (!stream) {
+        return res.status(404).send("Stream not found");
+      }
+
+      // Get server details to construct stream URL
+      const [server] = await db
+        .select()
+        .from(servers)
+        .where(eq(servers.id, stream.serverId))
+        .limit(1);
+
+      if (!server) {
+        return res.status(404).send("Server not found");
+      }
+
+      // Construct stream URL
+      const serverUrl = new URL(server.url);
+      const streamUrl = `${serverUrl.protocol}//${serverUrl.host}/${stream.streamKey}/index.m3u8`;
+
+      // Generate new thumbnail
+      const thumbnailPath = await ThumbnailService.generateThumbnail(streamUrl, streamId);
+      if (!thumbnailPath) {
+        return res.status(500).send("Failed to generate thumbnail");
+      }
+
+      res.json({ thumbnailPath });
+    } catch (error) {
+      console.error('Error generating thumbnail:', error);
+      res.status(500).send("Failed to generate thumbnail");
+    }
   });
 
   const httpServer = createServer(app);
