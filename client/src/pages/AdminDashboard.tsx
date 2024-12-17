@@ -31,9 +31,16 @@ export default function AdminDashboard() {
         
         <StreamList />
         
-        <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">Server Statistics</h2>
-          <ServerStats />
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-semibold mb-4">Server Health</h2>
+            <ServerHealth />
+          </div>
+          
+          <div>
+            <h2 className="text-2xl font-semibold mb-4">Server Statistics</h2>
+            <ServerStats />
+          </div>
         </div>
       </main>
     </div>

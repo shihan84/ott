@@ -54,4 +54,7 @@ export const api = {
     fetchApi<Permission>('/permissions', { method: 'POST', body: JSON.stringify(data) }),
   deletePermission: (id: number) =>
     fetchApi<void>(`/permissions/${id}`, { method: 'DELETE' }),
+    
+  // Server health monitoring
+  getServersHealth: () => fetchApi('/servers/health'),
 };

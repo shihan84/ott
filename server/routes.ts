@@ -43,6 +43,45 @@ export function registerRoutes(app: Express): Server {
     res.json(allServers);
   });
 
+  app.get("/api/servers/health", requireAuth, async (req, res) => {
+    try {
+      const allServers = await db.select().from(servers);
+      const serversWithHealth = await Promise.all(
+        allServers.map(async (server) => {
+          try {
+            const stats = await fetchServerStats(server);
+            return {
+              ...server,
+              health: {
+                status: stats.system ? 'online' : 'offline',
+                cpuUsage: stats.system.cpu_usage,
+                memoryUsage: stats.system.memory_usage,
+                activeStreams: stats.streams.length,
+                totalBandwidth: stats.streams.reduce((sum, stream) => sum + stream.bandwidth_in, 0),
+                lastChecked: new Date().toISOString(),
+              },
+            };
+          } catch (error) {
+            return {
+              ...server,
+              health: {
+                status: 'offline',
+                cpuUsage: 0,
+                memoryUsage: 0,
+                activeStreams: 0,
+                totalBandwidth: 0,
+                lastChecked: new Date().toISOString(),
+              },
+            };
+          }
+        })
+      );
+      res.json(serversWithHealth);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch server health metrics" });
+    }
+  });
+
   app.post("/api/servers", requireAdmin, async (req, res) => {
     const { name, url, apiKey } = req.body;
     const newServer = await db.insert(servers).values({ name, url, apiKey }).returning();

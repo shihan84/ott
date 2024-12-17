@@ -14,6 +14,15 @@ interface FlussonicStreamStats {
   uptime: number;
 }
 
+interface FlussonicServerStats {
+  streams: FlussonicStreamStats[];
+  system: {
+    cpu_usage: number;
+    memory_usage: number;
+    uptime: number;
+  };
+}
+
 export async function setupFlussonicIntegration() {
   // Poll Flussonic servers every 30 seconds
   setInterval(async () => {
@@ -32,21 +41,35 @@ export async function setupFlussonicIntegration() {
 
 async function fetchServerStats(server: typeof servers.$inferSelect) {
   try {
-    const response = await fetch(`${server.url}/flussonic/api/streams`, {
-      headers: {
-        Authorization: `Bearer ${server.apiKey}`,
-      },
-    });
+    const [streamsResponse, systemResponse] = await Promise.all([
+      fetch(`${server.url}/flussonic/api/streams`, {
+        headers: {
+          Authorization: `Bearer ${server.apiKey}`,
+        },
+      }),
+      fetch(`${server.url}/flussonic/api/system`, {
+        headers: {
+          Authorization: `Bearer ${server.apiKey}`,
+        },
+      }),
+    ]);
 
-    if (!response.ok) {
-      throw new Error(`Flussonic API error: ${response.statusText}`);
+    if (!streamsResponse.ok || !systemResponse.ok) {
+      throw new Error(`Flussonic API error: ${streamsResponse.statusText || systemResponse.statusText}`);
     }
 
-    const data = await response.json();
-    return data.streams as FlussonicStreamStats[];
+    const [streamsData, systemData] = await Promise.all([
+      streamsResponse.json(),
+      systemResponse.json(),
+    ]);
+
+    return {
+      streams: streamsData.streams as FlussonicStreamStats[],
+      system: systemData as FlussonicServerStats['system'],
+    };
   } catch (error) {
     console.error(`Error fetching stats from server ${server.name}:`, error);
-    return [];
+    return { streams: [], system: { cpu_usage: 0, memory_usage: 0, uptime: 0 } };
   }
 }
 
