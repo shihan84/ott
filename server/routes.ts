@@ -487,11 +487,11 @@ export function registerRoutes(app: Express): Server {
     try {
       const streamId = parseInt(req.params.streamId);
       console.log('Fetching traffic stats for stream:', streamId);
-      const monthsToShow = 12; // Show last 12 months
       
-      // Calculate date range
+      // Get current month's stats
       const now = new Date();
-      const startDate = new Date(now.getFullYear(), now.getMonth() - monthsToShow + 1, 1);
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
       
       const stats = await db
         .select({
@@ -504,9 +504,11 @@ export function registerRoutes(app: Express): Server {
         .from(trafficStats)
         .where(and(
           eq(trafficStats.streamId, streamId),
-          sql`(${trafficStats.year} * 100 + ${trafficStats.month}) >= ${startDate.getFullYear() * 100 + startDate.getMonth() + 1}`
+          eq(trafficStats.year, currentYear),
+          eq(trafficStats.month, currentMonth)
         ))
-        .orderBy(sql`${trafficStats.year} * 100 + ${trafficStats.month}`);
+        .orderBy(trafficStats.lastUpdated, 'desc')
+        .limit(1);
 
       // Convert BigInt to Number for JSON serialization
       const formattedStats = stats.map(stat => ({
@@ -534,68 +536,46 @@ export function registerRoutes(app: Express): Server {
     const month = now.getMonth() + 1;
     
     try {
-      // Generate some sample data for testing if real data is not available
-      let bytesIn = 0;
-      let bytesOut = 0;
-      
-      if (stream.streamStatus.stats.bytes_in === 0 && stream.streamStatus.stats.bytes_out === 0) {
-        // Generate sample data for testing
-        const baseTraffic = Math.floor(Math.random() * 1000000000); // Random number up to 1GB
-        bytesIn = baseTraffic + Math.floor(Math.random() * 500000000);  // Add up to 500MB variation
-        bytesOut = baseTraffic * 3 + Math.floor(Math.random() * 1000000000); // Roughly 3x more outbound
-      } else {
-        bytesIn = Math.min(Number(stream.streamStatus.stats.bytes_in), Number.MAX_SAFE_INTEGER);
-        bytesOut = Math.min(Number(stream.streamStatus.stats.bytes_out), Number.MAX_SAFE_INTEGER);
-      }
+      const bytesIn = Math.min(Number(stream.streamStatus.stats.bytes_in), Number.MAX_SAFE_INTEGER);
+      const bytesOut = Math.min(Number(stream.streamStatus.stats.bytes_out), Number.MAX_SAFE_INTEGER);
       
       console.log(`Processing traffic for stream ${stream.id} - Year: ${year}, Month: ${month}`);
       console.log(`Bytes - In: ${bytesIn}, Out: ${bytesOut}`);
       
-      // Create new stat entry for testing
-      const [newStat] = await db
-        .insert(trafficStats)
-        .values({
-          streamId: stream.id,
-          year,
-          month,
-          bytesIn: bytesIn,
-          bytesOut: bytesOut,
-          lastUpdated: now,
-        })
-        .returning();
-      
-      console.log(`Created traffic stats for stream ${stream.id}:`, newStat);
-      
-      // Generate some historical data if none exists
-      const existingStats = await db
+      // Update or create current month's stats
+      const [existingStat] = await db
         .select()
         .from(trafficStats)
-        .where(eq(trafficStats.streamId, stream.id));
-        
-      if (existingStats.length <= 1) {
-        console.log('Generating historical data...');
-        const pastMonths = 11; // Generate 11 months of historical data
-        
-        for (let i = 1; i <= pastMonths; i++) {
-          const pastDate = new Date(now);
-          pastDate.setMonth(pastDate.getMonth() - i);
-          
-          const baseTraffic = Math.floor(Math.random() * 1000000000);
-          const historicalBytesIn = baseTraffic + Math.floor(Math.random() * 500000000);
-          const historicalBytesOut = baseTraffic * 3 + Math.floor(Math.random() * 1000000000);
-          
-          await db
-            .insert(trafficStats)
-            .values({
-              streamId: stream.id,
-              year: pastDate.getFullYear(),
-              month: pastDate.getMonth() + 1,
-              bytesIn: historicalBytesIn,
-              bytesOut: historicalBytesOut,
-              lastUpdated: pastDate,
-            })
-            .returning();
-        }
+        .where(and(
+          eq(trafficStats.streamId, stream.id),
+          eq(trafficStats.year, year),
+          eq(trafficStats.month, month)
+        ))
+        .limit(1);
+
+      if (existingStat) {
+        await db
+          .update(trafficStats)
+          .set({
+            bytesIn,
+            bytesOut,
+            lastUpdated: now,
+          })
+          .where(eq(trafficStats.id, existingStat.id));
+        console.log(`Updated traffic stats for stream ${stream.id}`);
+      } else {
+        const [newStat] = await db
+          .insert(trafficStats)
+          .values({
+            streamId: stream.id,
+            year,
+            month,
+            bytesIn,
+            bytesOut,
+            lastUpdated: now,
+          })
+          .returning();
+        console.log(`Created new traffic stats for stream ${stream.id}:`, newStat);
       }
     } catch (error) {
       console.error('Error updating traffic stats:', error);
