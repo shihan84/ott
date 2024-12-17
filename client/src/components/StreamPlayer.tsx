@@ -100,28 +100,22 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
           config={{
             file: {
               forceHLS: true,
-              hlsVersion: '1.4.5',
               hlsOptions: {
                 enableWorker: true,
-                debug: true, // Enable debug mode to see what's happening
+                debug: true,
                 xhrSetup: function(xhr: XMLHttpRequest) {
                   xhr.withCredentials = false;
                 },
-                manifestLoadingTimeOut: 20000,
-                manifestLoadingMaxRetry: 5,
-                levelLoadingTimeOut: 20000,
-                levelLoadingMaxRetry: 5,
-                fragLoadingTimeOut: 20000,
-                fragLoadingMaxRetry: 5,
-                startLevel: -1, // Auto quality selection
+                manifestLoadingTimeOut: 30000,
+                manifestLoadingMaxRetry: 3,
+                levelLoadingTimeOut: 30000,
+                levelLoadingMaxRetry: 3,
+                fragLoadingTimeOut: 30000,
+                fragLoadingMaxRetry: 3,
+                startLevel: -1,
                 autoStartLoad: true,
-                defaultAudioCodec: undefined,
-                progressive: true,
-                lowLatencyMode: true,
-                backBufferLength: 90,
-                enableWebVTT: false,
-                enableIMSC1: false,
-                enableCEA708Captions: false,
+                liveDurationInfinity: true,
+                liveBackBufferLength: 0,
               },
             },
           }}

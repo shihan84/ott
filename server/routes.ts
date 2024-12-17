@@ -492,13 +492,39 @@ export function registerRoutes(app: Express): Server {
       
       const query = user.isAdmin
         ? db
-            .select()
+            .select({
+              id: streams.id,
+              name: streams.name,
+              streamKey: streams.streamKey,
+              active: streams.active,
+              lastSeen: streams.lastSeen,
+              streamStatus: streams.streamStatus,
+              serverId: streams.serverId,
+              createdAt: streams.createdAt,
+              server: {
+                url: servers.url
+              }
+            })
             .from(streams)
+            .innerJoin(servers, eq(streams.serverId, servers.id))
             .where(eq(streams.id, streamId))
         : db
-            .select()
+            .select({
+              id: streams.id,
+              name: streams.name,
+              streamKey: streams.streamKey,
+              active: streams.active,
+              lastSeen: streams.lastSeen,
+              streamStatus: streams.streamStatus,
+              serverId: streams.serverId,
+              createdAt: streams.createdAt,
+              server: {
+                url: servers.url
+              }
+            })
             .from(streams)
             .innerJoin(permissions, eq(permissions.streamId, streams.id))
+            .innerJoin(servers, eq(streams.serverId, servers.id))
             .where(and(
               eq(streams.id, streamId),
               eq(permissions.userId, user.id)
