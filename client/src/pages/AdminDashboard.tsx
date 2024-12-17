@@ -2,8 +2,6 @@ import { Layout } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import StreamList from "@/components/StreamList";
-import ServerStats from "@/components/ServerStats";
-import ServerHealth from "@/components/ServerHealth";
 import UserManagement from "@/components/UserManagement";
 import AccessControl from "@/components/AccessControl";
 import ServerManagement from "@/components/ServerManagement";
@@ -34,18 +32,6 @@ export default function AdminDashboard() {
         <ServerManagement />
         
         <StreamList />
-        
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-semibold mb-4">Server Health</h2>
-            <ServerHealth />
-          </div>
-          
-          <div>
-            <h2 className="text-2xl font-semibold mb-4">Server Statistics</h2>
-            <ServerStats />
-          </div>
-        </div>
       </main>
     </div>
   );
