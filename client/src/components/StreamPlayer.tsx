@@ -60,7 +60,8 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
           protocol: streamUrl.protocol,
           hostname: streamUrl.hostname,
           pathname: streamUrl.pathname,
-          isHLS: streamUrl.pathname.endsWith('.m3u8')
+          isHLS: streamUrl.pathname.endsWith('.m3u8'),
+          searchParams: Object.fromEntries(streamUrl.searchParams)
         });
         
         if (!streamUrl.pathname.endsWith('.m3u8')) {
@@ -69,6 +70,16 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
           errorMessage = 'Failed to load HLS stream. The stream might be offline or the URL is incorrect.';
         }
       }
+
+      console.log('Stream playback details:', {
+        url,
+        error: e,
+        message: errorMessage,
+        errorType: typeof e,
+        errorKeys: e && typeof e === 'object' ? Object.keys(e) : [],
+        stackTrace: e && e.stack ? e.stack : 'No stack trace',
+        expectedFormat: 'https://server.domain/streamKey/index.m3u8'
+      });
     } catch (urlError) {
       console.error('Invalid URL format:', urlError);
       errorMessage = 'Invalid stream URL format';

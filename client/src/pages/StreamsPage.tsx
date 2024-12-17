@@ -39,13 +39,26 @@ export default function StreamsPage() {
       console.log('Fetching streams for server:', serverId);
       const response = await api.getServerStreams(parseInt(serverId!));
       console.log('Server streams response:', response);
-      // Ensure server URL is present in each stream
-      return response.map(stream => ({
-        ...stream,
-        server: {
-          url: stream.server?.url || '',
-        }
-      }));
+      
+      // Map and construct proper stream URLs
+      return response.map(stream => {
+        // Log stream details for debugging
+        console.log('Processing stream:', {
+          streamUrl: stream.server?.url,
+          serverUrl: stream.server?.url,
+          streamKey: stream.streamKey,
+          isAlive: stream.streamStatus?.stats.alive,
+          streamStatus: stream.streamStatus,
+          protocol: stream.server?.url ? new URL(stream.server.url).protocol : undefined
+        });
+
+        return {
+          ...stream,
+          server: {
+            url: stream.server?.url || '',
+          }
+        };
+      });
     },
     enabled: !!serverId,
     refetchInterval: 10000, // Refetch every 10 seconds for live status
