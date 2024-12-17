@@ -3,6 +3,35 @@ import { db } from "@db";
 import { eq } from "drizzle-orm";
 import type { StreamStats } from "../client/src/types";
 
+// Flussonic API response types
+interface FlussonicStreamInput {
+  bitrate: number;
+  bytes_in: number;
+  time: number;
+}
+
+interface FlussonicStream {
+  name: string;
+  alive: boolean;
+  input?: FlussonicStreamInput;
+  clients: number;
+}
+
+interface FlussonicSystemStats {
+  cpu: {
+    total: number;
+    user: number;
+    system: number;
+  };
+  memory: {
+    total: number;
+    used: number;
+    free: number;
+  };
+  uptime: number;
+}
+
+// Our normalized types
 interface FlussonicStreamStats {
   name: string;
   input: {
@@ -41,15 +70,20 @@ export async function setupFlussonicIntegration() {
 
 async function fetchServerStats(server: typeof servers.$inferSelect) {
   try {
+    // Flussonic API expects Basic auth with API token as username and empty password
+    const auth = Buffer.from(`${server.apiKey}:`).toString('base64');
+    
     const [streamsResponse, systemResponse] = await Promise.all([
-      fetch(`${server.url}/flussonic/api/streams`, {
+      fetch(`${server.url}/api/v3/streams`, {
         headers: {
-          Authorization: `Bearer ${server.apiKey}`,
+          'Authorization': `Basic ${auth}`,
+          'Accept': 'application/json',
         },
       }),
-      fetch(`${server.url}/flussonic/api/system`, {
+      fetch(`${server.url}/api/v3/system_stat`, {
         headers: {
-          Authorization: `Bearer ${server.apiKey}`,
+          'Authorization': `Basic ${auth}`,
+          'Accept': 'application/json',
         },
       }),
     ]);
@@ -63,9 +97,23 @@ async function fetchServerStats(server: typeof servers.$inferSelect) {
       systemResponse.json(),
     ]);
 
+    // Map Flussonic API response to our expected format
     return {
-      streams: streamsData.streams as FlussonicStreamStats[],
-      system: systemData as FlussonicServerStats['system'],
+      streams: streamsData.streams.map((stream: any) => ({
+        name: stream.name,
+        input: {
+          connected: stream.alive,
+          bitrate: stream.input?.bitrate || 0,
+        },
+        clients: stream.clients || 0,
+        bandwidth_in: stream.input?.bytes_in || 0,
+        uptime: stream.input?.time || 0,
+      })),
+      system: {
+        cpu_usage: systemData.cpu.total,
+        memory_usage: (systemData.memory.used / systemData.memory.total) * 100,
+        uptime: systemData.uptime,
+      },
     };
   } catch (error) {
     console.error(`Error fetching stats from server ${server.name}:`, error);
