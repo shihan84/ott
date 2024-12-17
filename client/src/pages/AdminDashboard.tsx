@@ -1,7 +1,6 @@
 import { Layout } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
-import StreamList from "@/components/StreamList";
 import UserManagement from "@/components/UserManagement";
 import AccessControl from "@/components/AccessControl";
 import ServerManagement from "@/components/ServerManagement";
@@ -30,8 +29,6 @@ export default function AdminDashboard() {
         </div>
 
         <ServerManagement />
-        
-        <StreamList />
       </main>
     </div>
   );

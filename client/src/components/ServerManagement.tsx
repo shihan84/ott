@@ -6,15 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { api } from '@/lib/api';
 import type { Server } from '@db/schema';
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw, ServerIcon, Trash2 } from 'lucide-react';
+import type { StreamWithStats } from '@/types';
+import { AlertCircle, CheckCircle2, Loader2, RefreshCw, ServerIcon, Trash2, Activity, Users, Wifi } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { formatDistanceToNow } from 'date-fns';
 
 const serverSchema = z.object({
@@ -33,12 +35,19 @@ const serverSchema = z.object({
 
 export default function ServerManagement() {
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedServer, setSelectedServer] = useState<Server | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: servers, isLoading } = useQuery<Server[]>({
     queryKey: ['/api/servers'],
     queryFn: api.getServers,
+  });
+
+  const { data: streams } = useQuery<StreamWithStats[]>({
+    queryKey: ['/api/streams', selectedServer?.id],
+    queryFn: () => api.getStreams(),
+    enabled: !!selectedServer,
   });
 
   const form = useForm<z.infer<typeof serverSchema>>({
@@ -109,6 +118,7 @@ export default function ServerManagement() {
   };
 
   return (
+    <TooltipProvider>
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Server Management</CardTitle>
@@ -262,6 +272,66 @@ export default function ServerManagement() {
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
+                  <Sheet open={!!selectedServer} onOpenChange={() => setSelectedServer(null)}>
+                      <SheetTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedServer(server)}
+                        >
+                          View Streams
+                        </Button>
+                      </SheetTrigger>
+                      <SheetContent className="w-[600px]">
+                        <SheetHeader>
+                          <SheetTitle>Streams - {selectedServer?.name}</SheetTitle>
+                        </SheetHeader>
+                        <div className="mt-4">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Viewers</TableHead>
+                                <TableHead>Bitrate</TableHead>
+                                <TableHead>Uptime</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {streams?.map((stream) => (
+                                <TableRow key={stream.id}>
+                                  <TableCell className="font-medium">{stream.name}</TableCell>
+                                  <TableCell>
+                                    <Badge variant={stream.streamStatus?.alive ? 'default' : 'secondary'}>
+                                      <Activity className="w-4 h-4 mr-1" />
+                                      {stream.streamStatus?.alive ? 'Online' : 'Offline'}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center">
+                                      <Users className="w-4 h-4 mr-1" />
+                                      {stream.streamStatus?.clients || 0}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center">
+                                      <Wifi className="w-4 h-4 mr-1" />
+                                      {stream.streamStatus?.input ? `${Math.round(stream.streamStatus.input.bitrate / 1024)} Kbps` : 'N/A'}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    {stream.streamStatus?.alive && stream.streamStatus.input
+                                      ? formatDistanceToNow(Date.now() - stream.streamStatus.input.time * 1000, { addSuffix: true })
+                                      : 'Offline'
+                                    }
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </SheetContent>
+                    </Sheet>
                   </div>
                 </TableCell>
               </TableRow>
@@ -270,5 +340,6 @@ export default function ServerManagement() {
         </Table>
       </CardContent>
     </Card>
+    </TooltipProvider>
   );
 }
