@@ -147,12 +147,27 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Stream routes
-  app.get("/api/streams", requireAuth, async (req, res) => {
+  app.get("/api/servers/:serverId/streams", requireAuth, async (req, res) => {
     ensureAuthenticated(req);
+    const serverId = parseInt(req.params.serverId);
     
     try {
-      // Get base stream data
-      let streamsQuery = db.select().from(streams);
+      // Get server info
+      const [server] = await db
+        .select()
+        .from(servers)
+        .where(eq(servers.id, serverId))
+        .limit(1);
+        
+      if (!server) {
+        return res.status(404).send("Server not found");
+      }
+      
+      // Get streams for this server
+      let streamsQuery = db
+        .select()
+        .from(streams)
+        .where(eq(streams.serverId, serverId));
       
       if (!req.user.isAdmin) {
         streamsQuery = streamsQuery
@@ -162,29 +177,16 @@ export function registerRoutes(app: Express): Server {
       
       const streamData = await streamsQuery;
       
-      // Get server data for fetching active streams
-      const serverIds = [...new Set(streamData.map(s => s.serverId))];
-      const serverData = await db
-        .select()
-        .from(servers)
-        .where(eq(servers.id, serverIds[0])); // For now just handle one server
-        
-      if (serverData.length === 0) {
-        return res.json(streamData);
-      }
-      
       // Get active streams from Flussonic
       try {
-        console.log('Fetching streams for server:', serverData[0].name);
-        const activeStreams = await StreamStatisticsService.getActiveStreams(serverData[0]);
+        const activeStreams = await flussonicService.getStreams(server);
         
         // Merge stream data with active status
         const enrichedStreams = streamData.map(stream => {
           const activeStream = activeStreams.find(as => as.name === stream.streamKey);
-          console.log('Stream:', stream.name, 'Active status:', !!activeStream);
           return {
             ...stream,
-            streamStatus: activeStream ? StreamStatisticsService.normalizeStreamStats(activeStream) : null
+            streamStatus: activeStream || null
           };
         });
         

@@ -57,9 +57,9 @@ function ServerManagementContent({ isOpen, setIsOpen }: ServerManagementContentP
     queryFn: api.getServers,
   });
 
-  const { data: streams } = useQuery<StreamWithStats[]>({
-    queryKey: ['/api/streams', selectedServer?.id],
-    queryFn: () => api.getStreams(),
+  const { data: streams, isLoading: isLoadingStreams } = useQuery<StreamWithStats[]>({
+    queryKey: ['/api/servers', selectedServer?.id, 'streams'],
+    queryFn: () => api.getServerStreams(selectedServer!.id),
     enabled: !!selectedServer,
   });
 
