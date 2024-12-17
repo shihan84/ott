@@ -84,7 +84,8 @@ export default function StreamMonitoringPage() {
   }
 
   // Construct HLS URL based on server URL and stream key
-  const streamUrl = stream ? `${stream.server?.url}/${stream.streamKey}/index.m3u8` : '';
+  const streamUrl = stream && stream.streamStatus?.stats.alive ? 
+    `${stream.server?.url}/${stream.streamKey}/index.m3u8` : '';
   
   // Get available video qualities from media info
   const videoTracks = stream?.streamStatus?.stats?.media_info?.tracks.filter(

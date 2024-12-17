@@ -29,7 +29,11 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
 
   const handleError = useCallback((e: any) => {
     console.error('Stream playback error:', e);
-    setError('Failed to load stream');
+    let errorMessage = 'Failed to load stream';
+    if (e === 'hlsError') {
+      errorMessage = 'Failed to load HLS stream. The stream might be offline or the URL is incorrect.';
+    }
+    setError(errorMessage);
     setIsReady(false);
   }, []);
 
@@ -83,7 +87,15 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
               forceHLS: true,
               hlsOptions: {
                 enableWorker: true,
-                debug: false,
+                debug: true, // Enable debug mode temporarily to see what's happening
+                xhrSetup: function(xhr: XMLHttpRequest) {
+                  xhr.withCredentials = false; // Disable credentials for cross-origin requests
+                },
+                // Add more specific HLS.js options
+                manifestLoadingTimeOut: 10000, // Timeout for manifest loading
+                manifestLoadingMaxRetry: 3, // Maximum retry attempts
+                levelLoadingTimeOut: 10000, // Timeout for level loading
+                levelLoadingMaxRetry: 3 // Maximum retry attempts
               },
             },
           }}
