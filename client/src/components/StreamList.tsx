@@ -15,12 +15,12 @@ export default function StreamList() {
   
   const { data, isLoading } = useQuery({
     queryKey: ['/api/streams'],
-    queryFn: api.getStreams,
+    queryFn: () => fetch('/api/streams', { credentials: 'include' }).then(res => res.json()),
   });
 
   useEffect(() => {
     if (data) {
-      setStreams(data as StreamWithStats[]);
+      setStreams(data);
     }
   }, [data]);
 
@@ -30,7 +30,7 @@ export default function StreamList() {
         setStreams(prev => 
           prev.map(stream => 
             stream.id === message.streamId 
-              ? { ...stream, stats: message.data }
+              ? { ...stream, status: message.data }
               : stream
           )
         );
@@ -54,10 +54,10 @@ export default function StreamList() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Server</TableHead>
+              <TableHead>Stream Key</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Viewers</TableHead>
-              <TableHead>Bandwidth</TableHead>
+              <TableHead>Bitrate</TableHead>
               <TableHead>Uptime</TableHead>
             </TableRow>
           </TableHeader>
@@ -65,28 +65,28 @@ export default function StreamList() {
             {streams.map((stream) => (
               <TableRow key={stream.id}>
                 <TableCell className="font-medium">{stream.name}</TableCell>
-                <TableCell>{stream.server.name}</TableCell>
+                <TableCell>{stream.streamKey}</TableCell>
                 <TableCell>
-                  <Badge variant={stream.stats.status === 'online' ? 'success' : 'secondary'}>
+                  <Badge variant={stream.status?.isActive ? 'success' : 'secondary'}>
                     <Activity className="w-4 h-4 mr-1" />
-                    {stream.stats.status}
+                    {stream.status?.isActive ? 'Online' : 'Offline'}
                   </Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center">
                     <Users className="w-4 h-4 mr-1" />
-                    {stream.stats.viewers}
+                    {stream.status?.activeViewers || 0}
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center">
                     <Wifi className="w-4 h-4 mr-1" />
-                    {Math.round(stream.stats.bandwidth / 1024 / 1024)} Mbps
+                    {stream.status ? `${Math.round(stream.status.bitrate / 1024)} Kbps` : 'N/A'}
                   </div>
                 </TableCell>
                 <TableCell>
-                  {stream.stats.status === 'online' 
-                    ? formatDistanceToNow(Date.now() - stream.stats.uptime * 1000, { addSuffix: true })
+                  {stream.status?.isActive
+                    ? formatDistanceToNow(Date.now() - stream.status.uptime * 1000, { addSuffix: true })
                     : 'Offline'
                   }
                 </TableCell>

@@ -1,13 +1,16 @@
+import type { Stream, Server, User, Permission } from "@db/schema";
+
 export interface StreamStats {
-  viewers: number;
-  bandwidth: number;
-  status: 'online' | 'offline';
-  uptime: number;
+  name: string;
+  isActive: boolean;
   bitrate: number;
+  bytesIn: number;
+  activeViewers: number;
+  uptime: number;
 }
 
 export interface StreamWithStats extends Stream {
-  stats: StreamStats;
+  status: StreamStats | null;
   server: Server;
 }
 

@@ -6,7 +6,7 @@ import { db } from "@db";
 import { users, servers, streams, permissions, type User } from "@db/schema";
 import { eq, and } from "drizzle-orm";
 import type { FlussonicStreamsResponse } from "./flussonic";
-import { flussonicService } from "./services/flussonic";
+import { flussonicService, StreamStatisticsService } from "./services/flussonic";
 
 // Extend Express Request type to include our User type
 declare global {
