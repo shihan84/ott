@@ -1,4 +1,5 @@
 import type { User, Server, Stream, Permission } from '@db/schema';
+import type { StreamStats, StreamWithStats } from '../types';
 
 const API_BASE = '/api';
 
@@ -13,6 +14,9 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
   });
 
   if (!response.ok) {
+    if (response.status >= 500) {
+      throw new Error(`${response.status}: ${response.statusText}`);
+    }
     throw new Error(await response.text());
   }
 
@@ -38,17 +42,20 @@ export const api = {
   deleteServer: (id: number) =>
     fetchApi<void>(`/servers/${id}`, { method: 'DELETE' }),
   testServerConnection: (id: number) =>
-    fetchApi<Server>(`/servers/${id}/test`, { method: 'POST' }),
+    fetchApi<{ success: boolean; message: string }>(`/servers/${id}/test`, { method: 'POST' }),
 
   // Stream management
-  getStreams: () => fetchApi<Stream[]>('/streams'),
-  getUserStreams: () => fetchApi<Stream[]>('/streams/user'),
+  getStreams: () => fetchApi<StreamWithStats[]>('/streams'),
+  getServerStreams: (serverId: number) => 
+    fetchApi<StreamWithStats[]>(`/servers/${serverId}/streams`),
   createStream: (data: Partial<Stream>) =>
     fetchApi<Stream>('/streams', { method: 'POST', body: JSON.stringify(data) }),
   updateStream: (id: number, data: Partial<Stream>) =>
     fetchApi<Stream>(`/streams/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteStream: (id: number) =>
     fetchApi<void>(`/streams/${id}`, { method: 'DELETE' }),
+  refreshStreamStatus: (serverId: number, streamId: number) =>
+    fetchApi<StreamStats>(`/servers/${serverId}/streams/${streamId}/refresh`, { method: 'POST' }),
 
   // Permissions
   getPermissions: () => fetchApi<Permission[]>('/permissions'),
@@ -58,5 +65,9 @@ export const api = {
     fetchApi<void>(`/permissions/${id}`, { method: 'DELETE' }),
     
   // Server health monitoring
-  getServersHealth: () => fetchApi('/servers/health'),
+  getServersHealth: () => fetchApi<Record<number, { status: string; error?: string }>>('/servers/health'),
+  
+  // Stream analytics
+  getStreamStats: (streamId: number) =>
+    fetchApi<StreamStats>(`/streams/${streamId}/stats`),
 };

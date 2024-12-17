@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
+import type { StreamStats } from "../client/src/types";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -28,7 +29,7 @@ export const streams = pgTable("streams", {
   serverId: integer("server_id").references(() => servers.id).notNull(),
   name: text("name").notNull(),
   streamKey: text("stream_key").notNull(),
-  streamStatus: jsonb("stream_status"),
+  streamStatus: jsonb("stream_status").$type<StreamStats | null>(),
   stats: jsonb("stats").default({}).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

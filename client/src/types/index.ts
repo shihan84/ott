@@ -1,6 +1,6 @@
 import type { Stream, Server, User, Permission } from "@db/schema";
 
-// Matches Flussonic API spec
+// Matches Flussonic API spec from OpenAPI docs
 export interface StreamStats {
   name: string;
   alive: boolean;
@@ -12,9 +12,8 @@ export interface StreamStats {
   clients: number;
 }
 
-export interface StreamWithStats extends Omit<Stream, 'streamStatus'> {
+export interface StreamWithStats extends Stream {
   streamStatus: StreamStats | null;
-  server: Server;
 }
 
 export interface UserWithPermissions extends User {
@@ -22,7 +21,7 @@ export interface UserWithPermissions extends User {
 }
 
 export interface ServerWithStreams extends Server {
-  streams: Stream[];
+  streams: StreamWithStats[];
 }
 
 export interface WSMessage {

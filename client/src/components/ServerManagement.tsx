@@ -35,6 +35,14 @@ const serverSchema = z.object({
 
 export default function ServerManagement() {
   const [isOpen, setIsOpen] = useState(false);
+  return (
+    <TooltipProvider>
+      <ServerManagementContent />
+    </TooltipProvider>
+  );
+}
+
+function ServerManagementContent() {
   const [selectedServer, setSelectedServer] = useState<Server | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -118,7 +126,6 @@ export default function ServerManagement() {
   };
 
   return (
-    <TooltipProvider>
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Server Management</CardTitle>
@@ -340,6 +347,5 @@ export default function ServerManagement() {
         </Table>
       </CardContent>
     </Card>
-    </TooltipProvider>
   );
 }
