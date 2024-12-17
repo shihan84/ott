@@ -30,7 +30,7 @@ export default function StreamList() {
         setStreams(prev => 
           prev.map(stream => 
             stream.id === message.streamId 
-              ? { ...stream, status: message.data }
+              ? { ...stream, streamStatus: message.data } 
               : stream
           )
         );
@@ -67,26 +67,26 @@ export default function StreamList() {
                 <TableCell className="font-medium">{stream.name}</TableCell>
                 <TableCell>{stream.streamKey}</TableCell>
                 <TableCell>
-                  <Badge variant={stream.status?.isActive ? 'success' : 'secondary'}>
+                  <Badge variant={stream.streamStatus?.isActive ? 'default' : 'secondary'}>
                     <Activity className="w-4 h-4 mr-1" />
-                    {stream.status?.isActive ? 'Online' : 'Offline'}
+                    {stream.streamStatus?.isActive ? 'Online' : 'Offline'}
                   </Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center">
                     <Users className="w-4 h-4 mr-1" />
-                    {stream.status?.activeViewers || 0}
+                    {stream.streamStatus?.activeViewers || 0}
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center">
                     <Wifi className="w-4 h-4 mr-1" />
-                    {stream.status ? `${Math.round(stream.status.bitrate / 1024)} Kbps` : 'N/A'}
+                    {stream.streamStatus ? `${Math.round(stream.streamStatus.bitrate / 1024)} Kbps` : 'N/A'}
                   </div>
                 </TableCell>
                 <TableCell>
-                  {stream.status?.isActive
-                    ? formatDistanceToNow(Date.now() - stream.status.uptime * 1000, { addSuffix: true })
+                  {stream.streamStatus?.isActive
+                    ? formatDistanceToNow(Date.now() - stream.streamStatus.uptime * 1000, { addSuffix: true })
                     : 'Offline'
                   }
                 </TableCell>

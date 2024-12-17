@@ -181,7 +181,7 @@ export function registerRoutes(app: Express): Server {
         const activeStream = activeStreams.find(as => as.name === stream.streamKey);
         return {
           ...stream,
-          status: activeStream ? StreamStatisticsService.normalizeStreamStats(activeStream) : null
+          streamStatus: activeStream ? StreamStatisticsService.normalizeStreamStats(activeStream) : null
         };
       });
       

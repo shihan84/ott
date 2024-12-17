@@ -9,8 +9,8 @@ export interface StreamStats {
   uptime: number;
 }
 
-export interface StreamWithStats extends Stream {
-  status: StreamStats | null;
+export interface StreamWithStats extends Omit<Stream, 'streamStatus'> {
+  streamStatus: StreamStats | null;
   server: Server;
 }
 
