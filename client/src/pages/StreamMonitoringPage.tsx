@@ -5,10 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import MonthlyTrafficStats from '@/components/MonthlyTrafficStats';
-import StreamPerformanceChart from '@/components/StreamPerformanceChart';
 import { useLocation } from 'wouter';
 import { Activity, Users, Wifi, Clock } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
 import type { StreamWithStats, MediaTrack } from '@/types';
 import { api } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
@@ -53,37 +51,23 @@ export default function StreamMonitoringPage() {
   const [, setLocation] = useLocation();
   const { serverId, streamId } = useParams();
   const { user } = useUser();
-  const [performanceData, setPerformanceData] = useState<Array<{
-    timestamp: number;
-    bitrate: number;
-    viewers: number;
-    bytesIn: number;
-    bytesOut: number;
-  }>>([]);
   
-  // Use useCallback to memoize the query function
-  const queryFn = useCallback(async () => {
-    if (!streamId) throw new Error('Stream ID is required');
-    
-    if (user?.isAdmin && serverId) {
-      const streams = await api.getServerStreams(parseInt(serverId));
-      const stream = streams.find(s => s.id === parseInt(streamId));
-      if (!stream) throw new Error('Stream not found');
-      return stream;
-    } else {
-      const streams = await api.getPermittedStreams();
-      const stream = streams.find(s => s.id === parseInt(streamId));
-      if (!stream) throw new Error('Stream not found');
-      return stream;
-    }
-  }, [user?.isAdmin, serverId, streamId]); // Stable dependencies
-
   const { data: stream, isLoading } = useQuery<StreamWithStats>({
     queryKey: ['/api/streams', streamId],
-    queryFn,
+    queryFn: async () => {
+      if (user?.isAdmin && serverId) {
+        const streams = await api.getServerStreams(parseInt(serverId));
+        const stream = streams.find(s => s.id === parseInt(streamId!));
+        if (!stream) throw new Error('Stream not found');
+        return stream;
+      } else {
+        const streams = await api.getPermittedStreams();
+        const stream = streams.find(s => s.id === parseInt(streamId!));
+        if (!stream) throw new Error('Stream not found');
+        return stream;
+      }
+    },
     refetchInterval: 5000, // Refresh every 5 seconds
-    enabled: Boolean(streamId), // Only run query when streamId is available
-    staleTime: 4000, // Consider data fresh for 4 seconds to prevent unnecessary refetches
   });
 
   if (isLoading) {
@@ -93,28 +77,6 @@ export default function StreamMonitoringPage() {
       </div>
     );
   }
-
-  // Update performance data when stream stats change
-  useEffect(() => {
-    const updateInterval = setInterval(() => {
-      const stats = stream?.streamStatus?.stats;
-      if (stats) {
-        setPerformanceData(prev => {
-          // Keep last 60 data points (5 minutes with 5-second intervals)
-          const newData = [...prev.slice(-59), {
-            timestamp: Date.now(),
-            bitrate: stats.input_bitrate || 0,
-            viewers: stats.online_clients || 0,
-            bytesIn: stats.bytes_in || 0,
-            bytesOut: stats.bytes_out || 0,
-          }];
-          return newData;
-        });
-      }
-    }, 5000); // Update every 5 seconds to match query refresh interval
-
-    return () => clearInterval(updateInterval);
-  }, [stream]); // Depend on the entire stream object to prevent unnecessary interval recreations
 
   if (!stream) {
     return (
@@ -257,11 +219,6 @@ export default function StreamMonitoringPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Performance Charts */}
-      {stream && (
-        <StreamPerformanceChart data={performanceData} />
-      )}
 
       {/* Monthly Traffic Stats */}
       {stream && (
