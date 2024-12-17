@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -45,24 +45,22 @@ export default function UserManagement() {
     queryFn: api.getServers,
   });
 
-  const { data: streams } = useQuery({
-    queryKey: ['/api/servers/streams'],
+  const { data: allStreams, isLoading: isStreamsLoading } = useQuery({
+    queryKey: ['/api/servers', servers?.map(s => s.id), 'streams'],
     queryFn: async () => {
-      if (!servers) return [];
-      const allStreams = await Promise.all(
-        servers.map(async (server) => {
-          try {
-            const serverStreams = await api.getServerStreams(server.id);
-            return serverStreams;
-          } catch (error) {
-            console.error(`Failed to fetch streams for server ${server.id}:`, error);
-            return [];
-          }
-        })
-      );
-      return allStreams.flat();
+      if (!servers?.length) return [];
+      const streams = [];
+      for (const server of servers) {
+        try {
+          const serverStreams = await api.getServerStreams(server.id);
+          streams.push(...serverStreams);
+        } catch (error) {
+          console.error(`Failed to fetch streams for server ${server.id}:`, error);
+        }
+      }
+      return streams;
     },
-    enabled: !!servers,
+    enabled: !!servers?.length,
   });
 
   const { data: userPermissions } = useQuery({
@@ -188,6 +186,42 @@ export default function UserManagement() {
               <TableHead>Role</TableHead>
               <TableHead>Created At</TableHead>
               <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users?.map((user) => (
+              <TableRow key={user.id}>
+                <TableCell>{user.username}</TableCell>
+                <TableCell>{user.isAdmin ? 'Admin' : 'User'}</TableCell>
+                <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setIsPermissionDialogOpen(true);
+                      }}
+                    >
+                      <Key className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => deleteMutation.mutate(user.id)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+
       <Dialog open={isPermissionDialogOpen} onOpenChange={setIsPermissionDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -237,7 +271,7 @@ export default function UserManagement() {
                       <SelectValue placeholder="Select a stream" />
                     </SelectTrigger>
                     <SelectContent>
-                      {streams?.map((stream) => {
+                      {allStreams?.map((stream) => {
                         // Don't show streams that the user already has permission for
                         const hasPermission = userPermissions?.some(p => p.streamId === stream.id);
                         if (hasPermission) return null;
@@ -263,7 +297,7 @@ export default function UserManagement() {
                   ) : (
                     <div className="space-y-2">
                       {userPermissions.map((permission) => {
-                        const stream = streams?.find(s => s.id === permission.streamId);
+                        const stream = allStreams?.find(s => s.id === permission.streamId);
                         if (!stream) return null;
                         
                         return (
@@ -308,41 +342,6 @@ export default function UserManagement() {
           )}
         </DialogContent>
       </Dialog>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users?.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>{user.username}</TableCell>
-                <TableCell>{user.isAdmin ? 'Admin' : 'User'}</TableCell>
-                <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedUser(user);
-                        setIsPermissionDialogOpen(true);
-                      }}
-                    >
-                      <Key className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => deleteMutation.mutate(user.id)}
-                      disabled={deleteMutation.isPending}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
     </Card>
   );
 }
