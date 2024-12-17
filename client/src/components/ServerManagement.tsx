@@ -12,7 +12,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { api } from '@/lib/api';
 import type { Server } from '@db/schema';
-import { Loader2, ServerIcon, Trash2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, RefreshCw, ServerIcon, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { formatDistanceToNow } from 'date-fns';
 
 const serverSchema = z.object({
   name: z.string().min(1, "Server name is required"),
@@ -76,6 +79,28 @@ export default function ServerManagement() {
       });
     },
   });
+
+  const testConnectionMutation = useMutation({
+    mutationFn: api.testServerConnection,
+    onSuccess: (data, serverId) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/servers'] });
+      toast({
+        title: "Success",
+        description: `Successfully connected to ${data.name}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const testConnection = (serverId: number) => {
+    testConnectionMutation.mutate(serverId);
+  };
 
   const onSubmit = (data: z.infer<typeof serverSchema>) => {
     createMutation.mutate(data);
@@ -155,6 +180,7 @@ export default function ServerManagement() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>URL</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Added On</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -164,16 +190,62 @@ export default function ServerManagement() {
               <TableRow key={server.id}>
                 <TableCell>{server.name}</TableCell>
                 <TableCell>{server.url}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={server.status === 'online' ? 'success' : 'destructive'}>
+                      {server.status}
+                    </Badge>
+                    {server.lastError && (
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <AlertCircle className="w-4 h-4 text-destructive" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{server.lastError}</p>
+                          {server.lastErrorAt && (
+                            <p className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(new Date(server.lastErrorAt), { addSuffix: true })}
+                            </p>
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {server.lastSuccessfulAuthAt && (
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <CheckCircle2 className="w-4 h-4 text-success" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Last authenticated {formatDistanceToNow(new Date(server.lastSuccessfulAuthAt), { addSuffix: true })}
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>{new Date(server.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => deleteMutation.mutate(server.id)}
-                    disabled={deleteMutation.isPending}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => testConnection(server.id)}
+                      disabled={testConnectionMutation.isPending}
+                    >
+                      {testConnectionMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => deleteMutation.mutate(server.id)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

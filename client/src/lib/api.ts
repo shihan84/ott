@@ -37,6 +37,8 @@ export const api = {
     fetchApi<Server>(`/servers/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteServer: (id: number) =>
     fetchApi<void>(`/servers/${id}`, { method: 'DELETE' }),
+  testServerConnection: (id: number) =>
+    fetchApi<Server>(`/servers/${id}/test`, { method: 'POST' }),
 
   // Stream management
   getStreams: () => fetchApi<Stream[]>('/streams'),

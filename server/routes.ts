@@ -86,8 +86,71 @@ export function registerRoutes(app: Express): Server {
 
   app.post("/api/servers", requireAdmin, async (req, res) => {
     const { name, url, apiKey } = req.body;
-    const newServer = await db.insert(servers).values({ name, url, apiKey }).returning();
-    res.json(newServer[0]);
+    
+    try {
+      // Test connection before saving
+      const server = { name, url, apiKey } as typeof servers.$inferInsert;
+      await flussonicService.authenticate(server);
+      
+      const [newServer] = await db
+        .insert(servers)
+        .values({
+          ...server,
+          status: 'online',
+          lastSuccessfulAuthAt: new Date(),
+        })
+        .returning();
+      
+      res.json(newServer);
+    } catch (error: any) {
+      res.status(400).send(error.message);
+    }
+  });
+
+  app.post("/api/servers/:id/test", requireAdmin, async (req, res) => {
+    const serverId = parseInt(req.params.id);
+    
+    try {
+      const [server] = await db
+        .select()
+        .from(servers)
+        .where(eq(servers.id, serverId))
+        .limit(1);
+
+      if (!server) {
+        return res.status(404).send("Server not found");
+      }
+
+      // Test authentication
+      await flussonicService.authenticate(server);
+      
+      // Update server status
+      const [updatedServer] = await db
+        .update(servers)
+        .set({
+          status: 'online',
+          lastSuccessfulAuthAt: new Date(),
+          lastError: null,
+          lastErrorAt: null,
+        })
+        .where(eq(servers.id, serverId))
+        .returning();
+
+      res.json(updatedServer);
+    } catch (error: any) {
+      // Update server status with error
+      const [updatedServer] = await db
+        .update(servers)
+        .set({
+          status: 'offline',
+          lastError: error.message,
+          lastErrorAt: new Date(),
+        })
+        .where(eq(servers.id, serverId))
+        .returning();
+
+      res.status(400).json(updatedServer);
+    }
   });
 
   // Stream routes

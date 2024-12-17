@@ -15,6 +15,10 @@ export const servers = pgTable("servers", {
   name: text("name").notNull(),
   url: text("url").notNull(),
   apiKey: text("api_key").notNull(),
+  status: text("status").default("offline").notNull(),
+  lastError: text("last_error"),
+  lastErrorAt: timestamp("last_error_at"),
+  lastSuccessfulAuthAt: timestamp("last_successful_auth_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
