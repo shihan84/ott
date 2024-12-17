@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
-import { setupWebSocket } from "./websocket";
+import { setupWebSocket, setTrafficStatsUpdater } from "./websocket";
 import { db } from "@db";
 import { users, servers, streams, permissions, trafficStats, type User } from "@db/schema";
 import { eq, sql, and, between } from "drizzle-orm";
@@ -517,45 +517,57 @@ export function registerRoutes(app: Express): Server {
 
   // Update traffic stats (called periodically by the server)
   async function updateTrafficStats(stream: typeof streams.$inferSelect) {
-    if (!stream.streamStatus) return;
+    if (!stream.streamStatus?.stats) return;
     
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
     
-    const [existingStat] = await db
-      .select()
-      .from(trafficStats)
-      .where(and(
-        eq(trafficStats.streamId, stream.id),
-        eq(trafficStats.year, year),
-        eq(trafficStats.month, month)
-      ))
-      .limit(1);
-    
-    if (existingStat) {
-      await db
-        .update(trafficStats)
-        .set({
-          bytesIn: BigInt(stream.streamStatus.stats.bytes_in),
-          bytesOut: BigInt(stream.streamStatus.stats.bytes_out),
-          lastUpdated: now,
-        })
-        .where(eq(trafficStats.id, existingStat.id));
-    } else {
-      await db
-        .insert(trafficStats)
-        .values({
-          streamId: stream.id,
-          year,
-          month,
-          bytesIn: BigInt(stream.streamStatus.stats.bytes_in),
-          bytesOut: BigInt(stream.streamStatus.stats.bytes_out),
-        });
+    try {
+      // Convert bytes to numbers, ensuring we don't exceed MAX_SAFE_INTEGER
+      const bytesIn = Math.min(Number(stream.streamStatus.stats.bytes_in), Number.MAX_SAFE_INTEGER);
+      const bytesOut = Math.min(Number(stream.streamStatus.stats.bytes_out), Number.MAX_SAFE_INTEGER);
+      
+      const [existingStat] = await db
+        .select()
+        .from(trafficStats)
+        .where(and(
+          eq(trafficStats.streamId, stream.id),
+          eq(trafficStats.year, year),
+          eq(trafficStats.month, month)
+        ))
+        .limit(1);
+      
+      if (existingStat) {
+        await db
+          .update(trafficStats)
+          .set({
+            bytesIn,
+            bytesOut,
+            lastUpdated: now,
+          })
+          .where(eq(trafficStats.id, existingStat.id));
+      } else {
+        await db
+          .insert(trafficStats)
+          .values({
+            streamId: stream.id,
+            year,
+            month,
+            bytesIn,
+            bytesOut,
+            lastUpdated: now,
+          });
+      }
+      
+      console.log(`Updated traffic stats for stream ${stream.id} - In: ${bytesIn}, Out: ${bytesOut}`);
+    } catch (error) {
+      console.error('Error updating traffic stats:', error);
     }
   }
 
-  setupWebSocket(httpServer);
+  const wss = setupWebSocket(httpServer);
+  setTrafficStatsUpdater(updateTrafficStats);
 
   return httpServer;
 }

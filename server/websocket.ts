@@ -4,10 +4,16 @@ import { streams } from "@db/schema";
 import { db } from "@db";
 import type { WSMessage } from "../client/src/types";
 
+// Import the updateTrafficStats function from routes
+let updateTrafficStats: any;
+export function setTrafficStatsUpdater(updater: any) {
+  updateTrafficStats = updater;
+}
+
 export function setupWebSocket(server: Server) {
   const wss = new WebSocketServer({ 
     server,
-    verifyClient: (info: { req: { headers: { [key: string]: string | undefined } } }) => {
+    verifyClient: (info: any) => {
       // Ignore Vite HMR WebSocket connections
       const protocol = info.req.headers['sec-websocket-protocol'];
       return protocol !== 'vite-hmr';
@@ -40,13 +46,20 @@ async function sendInitialStats(ws: import('ws').WebSocket) {
     const allStreams = await db.select().from(streams);
     
     for (const stream of allStreams) {
-      const message: WSMessage = {
-        type: 'stats',
-        streamId: stream.id,
-        data: stream.stats as any,
-      };
-      
-      ws.send(JSON.stringify(message));
+      if (stream.streamStatus) {
+        const message: WSMessage = {
+          type: 'stats',
+          streamId: stream.id,
+          data: stream.streamStatus,
+        };
+        
+        ws.send(JSON.stringify(message));
+        
+        // Update traffic stats for this stream
+        if (updateTrafficStats) {
+          await updateTrafficStats(stream).catch(console.error);
+        }
+      }
     }
   } catch (error) {
     console.error("Error sending initial stats:", error);
@@ -60,19 +73,26 @@ async function broadcastStats(wss: WebSocketServer) {
     const allStreams = await db.select().from(streams);
     
     for (const stream of allStreams) {
-      const message: WSMessage = {
-        type: 'stats',
-        streamId: stream.id,
-        data: stream.stats as any,
-      };
-      
-      const messageStr = JSON.stringify(message);
-      
-      wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(messageStr);
+      if (stream.streamStatus) {
+        const message: WSMessage = {
+          type: 'stats',
+          streamId: stream.id,
+          data: stream.streamStatus,
+        };
+        
+        const messageStr = JSON.stringify(message);
+        
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(messageStr);
+          }
+        });
+        
+        // Update traffic stats for this stream
+        if (updateTrafficStats) {
+          await updateTrafficStats(stream).catch(console.error);
         }
-      });
+      }
     }
   } catch (error) {
     console.error("Error broadcasting stats:", error);
