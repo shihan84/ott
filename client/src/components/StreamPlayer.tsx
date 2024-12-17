@@ -131,7 +131,7 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
       <CardHeader className="p-4">
         <CardTitle>{title || 'Live Stream'}</CardTitle>
       </CardHeader>
-      <CardContent className="p-0 relative aspect-video bg-black">
+      <CardContent className="p-0 relative w-[600px] h-[400px] bg-black">
         {/* Connection Status Indicator */}
         <div className={cn(
           'absolute top-2 right-2 z-10 flex items-center gap-2 px-2 py-1 rounded-full',

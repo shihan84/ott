@@ -52,10 +52,25 @@ export default function StreamsPage() {
           protocol: stream.server?.url ? new URL(stream.server.url).protocol : undefined
         });
 
+        // Construct proper HLS URL
+        const serverUrl = stream.server?.url;
+        let streamUrl = '';
+        
+        if (serverUrl && stream.streamKey) {
+          try {
+            const url = new URL(serverUrl);
+            // Ensure URL ends with stream key and index.m3u8
+            streamUrl = `${url.protocol}//${url.host}/${stream.streamKey}/index.m3u8`;
+            console.log('Constructed stream URL:', streamUrl);
+          } catch (e) {
+            console.error('Failed to construct stream URL:', e);
+          }
+        }
+        
         return {
           ...stream,
           server: {
-            url: stream.server?.url || '',
+            url: streamUrl
           }
         };
       });
