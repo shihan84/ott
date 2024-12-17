@@ -8,6 +8,7 @@ import { Activity, Users, Wifi, Clock } from 'lucide-react';
 import type { StreamWithStats, MediaTrack } from '@/types';
 import { api } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
+import StreamPlayer from '@/components/StreamPlayer';
 
 function formatBitrate(bitrate: number | undefined): string {
   if (!bitrate || typeof bitrate !== 'number') return 'N/A';
@@ -82,8 +83,12 @@ export default function StreamMonitoringPage() {
     );
   }
 
+  // Construct stream URL based on server URL and stream key
+  const streamUrl = stream ? `${stream.server?.url}/${stream.streamKey}` : '';
+
   return (
     <div className="container mx-auto py-6 space-y-6">
+      <StreamPlayer url={streamUrl} title={stream.name} />
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>

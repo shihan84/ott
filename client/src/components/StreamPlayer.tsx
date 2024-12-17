@@ -1,0 +1,104 @@
+import { useState, useCallback } from 'react';
+import ReactPlayer from 'react-player';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Volume2, VolumeX, Maximize, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface StreamPlayerProps {
+  url: string;
+  title?: string;
+}
+
+export default function StreamPlayer({ url, title }: StreamPlayerProps) {
+  const [isReady, setIsReady] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleReady = useCallback(() => {
+    setIsReady(true);
+    setError(null);
+  }, []);
+
+  const handleError = useCallback((e: any) => {
+    console.error('Stream playback error:', e);
+    setError('Failed to load stream');
+    setIsReady(false);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    const element = document.querySelector('.react-player');
+    if (!element) return;
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      element.requestFullscreen();
+    }
+  }, []);
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="p-4">
+        <CardTitle>{title || 'Live Stream'}</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0 relative aspect-video bg-black">
+        <div className={cn(
+          'absolute inset-0 flex items-center justify-center',
+          isReady ? 'opacity-0' : 'opacity-100'
+        )}>
+          {error ? (
+            <div className="text-destructive flex flex-col items-center gap-2">
+              <span>{error}</span>
+              <Button 
+                variant="outline" 
+                onClick={() => setIsPlaying(true)}
+              >
+                Retry
+              </Button>
+            </div>
+          ) : (
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          )}
+        </div>
+        
+        <ReactPlayer
+          url={url}
+          width="100%"
+          height="100%"
+          playing={isPlaying}
+          muted={isMuted}
+          onReady={handleReady}
+          onError={handleError}
+          className="react-player"
+        />
+        
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:text-white hover:bg-white/20"
+              onClick={() => setIsMuted(!isMuted)}
+            >
+              {isMuted ? (
+                <VolumeX className="h-5 w-5" />
+              ) : (
+                <Volume2 className="h-5 w-5" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:text-white hover:bg-white/20"
+              onClick={toggleFullscreen}
+            >
+              <Maximize className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
