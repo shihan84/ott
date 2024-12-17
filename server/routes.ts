@@ -100,6 +100,32 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.delete("/api/servers/:id", requireAdmin, async (req, res) => {
+    const serverId = parseInt(req.params.id);
+    
+    try {
+      // First delete associated streams
+      await db
+        .delete(streams)
+        .where(eq(streams.serverId, serverId));
+      
+      // Then delete the server
+      const [deletedServer] = await db
+        .delete(servers)
+        .where(eq(servers.id, serverId))
+        .returning();
+      
+      if (!deletedServer) {
+        return res.status(404).send("Server not found");
+      }
+      
+      res.json(deletedServer);
+    } catch (error) {
+      console.error('Error deleting server:', error);
+      res.status(500).send("Failed to delete server");
+    }
+  });
+
   app.post("/api/servers/:id/test", requireAdmin, async (req, res) => {
     const serverId = parseInt(req.params.id);
     
