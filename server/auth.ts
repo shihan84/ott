@@ -94,40 +94,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/register", async (req, res) => {
-    const { username, password } = req.body;
-
-    try {
-      const [existingUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, username))
-        .limit(1);
-
-      if (existingUser) {
-        return res.status(400).send("Username already exists");
-      }
-
-      const hashedPassword = await crypto.hash(password);
-      const [user] = await db
-        .insert(users)
-        .values({
-          username,
-          password: hashedPassword,
-          isAdmin: false,
-        })
-        .returning();
-
-      req.login(user, (err) => {
-        if (err) {
-          return res.status(500).send("Error logging in after registration");
-        }
-        res.json(user);
-      });
-    } catch (error) {
-      res.status(500).send("Error creating user");
-    }
-  });
+  
 
   app.post("/api/login", (req, res, next) => {
     passport.authenticate("local", (err: any, user: Express.User | false, info: { message: string }) => {

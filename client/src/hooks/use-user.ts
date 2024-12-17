@@ -79,32 +79,7 @@ export function useUser() {
     }
   });
 
-  const registerMutation = useMutation({
-    mutationFn: async (credentials: LoginCredentials) => {
-      const res = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credentials),
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error(await res.text());
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user'] });
-      toast({
-        title: "Success",
-        description: "Registration successful",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  });
+  
 
   return {
     user,
@@ -112,9 +87,7 @@ export function useUser() {
     error,
     login: loginMutation.mutate,
     logout: logoutMutation.mutate,
-    register: registerMutation.mutate,
     isLoginLoading: loginMutation.isPending,
     isLogoutLoading: logoutMutation.isPending,
-    isRegisterLoading: registerMutation.isPending,
   };
 }
