@@ -49,11 +49,32 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
     console.error('Stream playback error:', e);
     let errorMessage = 'Failed to load stream';
     
-    if (!url) {
-      errorMessage = 'No stream URL provided';
-    } else if (e === 'hlsError') {
-      errorMessage = 'Failed to load HLS stream. The stream might be offline or the URL is incorrect.';
-    } else if (typeof e === 'object' && e.message) {
+    // Validate URL format
+    try {
+      if (!url) {
+        errorMessage = 'No stream URL provided';
+      } else {
+        const streamUrl = new URL(url);
+        console.log('Stream URL validation:', {
+          fullUrl: streamUrl.toString(),
+          protocol: streamUrl.protocol,
+          hostname: streamUrl.hostname,
+          pathname: streamUrl.pathname,
+          isHLS: streamUrl.pathname.endsWith('.m3u8')
+        });
+        
+        if (!streamUrl.pathname.endsWith('.m3u8')) {
+          errorMessage = 'Invalid HLS stream URL format. Expected .m3u8 extension.';
+        } else if (e === 'hlsError') {
+          errorMessage = 'Failed to load HLS stream. The stream might be offline or the URL is incorrect.';
+        }
+      }
+    } catch (urlError) {
+      console.error('Invalid URL format:', urlError);
+      errorMessage = 'Invalid stream URL format';
+    }
+    
+    if (typeof e === 'object' && e.message) {
       errorMessage = e.message;
     }
     
@@ -200,22 +221,23 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
             },
           }}
           onProgress={(state) => {
-            console.log('Player progress:', state);
+            console.log('Player progress:', {
+              ...state,
+              url,
+              timestamp: new Date().toISOString()
+            });
           }}
           onBuffer={() => {
-            console.log('Player buffering...');
+            console.log('Player buffering...', {
+              url,
+              timestamp: new Date().toISOString()
+            });
           }}
           onBufferEnd={() => {
-            console.log('Player buffering ended');
-          }}
-          onProgress={(state) => {
-            console.log('Player progress:', state);
-          }}
-          onBuffer={() => {
-            console.log('Player buffering...');
-          }}
-          onBufferEnd={() => {
-            console.log('Player buffering ended');
+            console.log('Player buffering ended', {
+              url,
+              timestamp: new Date().toISOString()
+            });
           }}
         />
         

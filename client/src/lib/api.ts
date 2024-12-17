@@ -35,8 +35,20 @@ export const api = {
     fetchApi<Server>(`/servers/${id}/test`, { method: 'POST' }),
 
   // Stream management
-  getServerStreams: (serverId: number) => 
-    fetchApi<StreamWithStats[]>(`/servers/${serverId}/streams`),
+  getServerStreams: async (serverId: number) => {
+    const streams = await fetchApi<StreamWithStats[]>(`/servers/${serverId}/streams`);
+    console.log('API Response - Server Streams:', {
+      serverId,
+      streamsCount: streams.length,
+      streamDetails: streams.map(s => ({
+        id: s.id,
+        name: s.name,
+        hasServerUrl: !!s.server?.url,
+        serverUrl: s.server?.url
+      }))
+    });
+    return streams;
+  },
     
   // User management
   getUsers: () => fetchApi<User[]>('/users'),
