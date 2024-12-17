@@ -5,13 +5,13 @@ import { setupWebSocket } from "./websocket";
 import { db } from "@db";
 import { users, servers, streams, permissions, type User } from "@db/schema";
 import { eq, and } from "drizzle-orm";
-import { setupFlussonicIntegration, type FlussonicStreamsResponse } from "./flussonic";
+import type { FlussonicStreamsResponse } from "./flussonic";
 import { flussonicService } from "./services/flussonic";
 
 // Extend Express Request type to include our User type
 declare global {
   namespace Express {
-    interface User extends SelectUser {}
+    interface User extends typeof users.$inferSelect {}
   }
 }
 
@@ -66,76 +66,6 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/servers", requireAuth, async (req, res) => {
     const allServers = await db.select().from(servers);
     res.json(allServers);
-  });
-
-  app.get("/api/servers/health", requireAuth, async (req, res) => {
-    try {
-      const allServers = await db.select().from(servers);
-      const serversWithHealth = await Promise.all(
-        allServers.map(async (server) => {
-          try {
-            // Only fetch streams stats since system stats may not be available
-            await flussonicService.validateAuth(server);
-            // Fetch streams stats with validation disabled in development
-            const streamsStats = await flussonicService.makeAuthenticatedRequest<FlussonicStreamsResponse>(
-              server,
-              '/streams',
-              {},
-              process.env.NODE_ENV === 'production'
-            );
-            
-            // Transform the response to our expected format
-            // Calculate metrics only for active streams with valid input data
-            const activeStreams = streamsStats.streams.filter(
-              stream => stream.alive && stream.input
-            );
-            
-            const streamMetrics = {
-              activeStreams: activeStreams.length,
-              totalBandwidth: activeStreams.reduce(
-                (sum, stream) => sum + (stream.input?.bytes_in || 0),
-                0
-              ),
-              totalBitrate: activeStreams.reduce(
-                (sum, stream) => sum + (stream.input?.bitrate || 0),
-                0
-              ),
-            };
-
-            console.log('Stream metrics:', {
-              totalStreams: streamsStats.streams.length,
-              ...streamMetrics
-            });
-
-            return {
-              ...server,
-              health: {
-                status: 'online',
-                cpuUsage: 0, // Not available from API
-                memoryUsage: 0, // Not available from API
-                ...streamMetrics,
-                lastChecked: new Date().toISOString(),
-              },
-            };
-          } catch (error) {
-            return {
-              ...server,
-              health: {
-                status: 'offline',
-                cpuUsage: 0,
-                memoryUsage: 0,
-                activeStreams: 0,
-                totalBandwidth: 0,
-                lastChecked: new Date().toISOString(),
-              },
-            };
-          }
-        })
-      );
-      res.json(serversWithHealth);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch server health metrics" });
-    }
   });
 
   app.post("/api/servers", requireAdmin, async (req, res) => {
@@ -261,9 +191,6 @@ export function registerRoutes(app: Express): Server {
 
   // Setup WebSocket server for real-time updates
   setupWebSocket(httpServer);
-
-  // Setup Flussonic integration
-  setupFlussonicIntegration();
 
   return httpServer;
 }
