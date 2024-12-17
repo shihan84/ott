@@ -243,6 +243,7 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/servers/:serverId/streams", requireAuth, async (req, res) => {
     ensureAuthenticated(req);
     const serverId = parseInt(req.params.serverId);
+    const user = req.user;
     
     try {
       // Get server info
@@ -277,14 +278,25 @@ export function registerRoutes(app: Express): Server {
 
         if (!existingStream) {
           // Create new stream
-          await db.insert(streams).values({
-            serverId,
-            name: streamKey,
-            streamKey,
-            active: true,
-            lastSeen: new Date(),
-            streamStatus: activeStream
-          });
+          const [newStream] = await db
+            .insert(streams)
+            .values({
+              serverId,
+              name: streamKey,
+              streamKey,
+              active: true,
+              lastSeen: new Date(),
+              streamStatus: activeStream
+            })
+            .returning();
+
+          // If admin is creating the stream, give them access
+          if (user.isAdmin) {
+            await db.insert(permissions).values({
+              userId: user.id,
+              streamId: newStream.id
+            });
+          }
         } else {
           // Update existing stream
           await db
@@ -298,23 +310,41 @@ export function registerRoutes(app: Express): Server {
         }
       }
 
-      // Now get all streams from database
-      let streamsQuery = db
-        .select()
-        .from(streams)
-        .where(eq(streams.serverId, serverId))
-        .orderBy(streams.lastSeen);
-      
-      if (!req.user.isAdmin) {
-        console.log('User is not admin, applying permission filter');
-        streamsQuery = streamsQuery
-          .innerJoin(permissions, eq(permissions.streamId, streams.id))
-          .where(eq(permissions.userId, req.user.id));
-      }
-      
-      console.log('Fetching final stream list from database');
-      const finalStreams = await streamsQuery;
-      console.log('Total streams found:', finalStreams.length);
+      // Now get all streams from database with permissions
+      const query = user.isAdmin
+        ? db
+            .select({
+              id: streams.id,
+              name: streams.name,
+              streamKey: streams.streamKey,
+              active: streams.active,
+              lastSeen: streams.lastSeen,
+              streamStatus: streams.streamStatus,
+              serverId: streams.serverId,
+              createdAt: streams.createdAt
+            })
+            .from(streams)
+            .where(eq(streams.serverId, serverId))
+        : db
+            .select({
+              id: streams.id,
+              name: streams.name,
+              streamKey: streams.streamKey,
+              active: streams.active,
+              lastSeen: streams.lastSeen,
+              streamStatus: streams.streamStatus,
+              serverId: streams.serverId,
+              createdAt: streams.createdAt
+            })
+            .from(streams)
+            .innerJoin(permissions, eq(permissions.streamId, streams.id))
+            .where(and(
+              eq(streams.serverId, serverId),
+              eq(permissions.userId, user.id)
+            ));
+
+      const finalStreams = await query;
+      console.log(`Total streams found for ${user.isAdmin ? 'admin' : 'user'} ${user.username}:`, finalStreams.length);
       
       res.json(finalStreams);
     } catch (error) {
