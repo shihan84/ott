@@ -162,8 +162,22 @@ export function registerRoutes(app: Express): Server {
       if (!server) {
         return res.status(404).send("Server not found");
       }
+
+      // First get streams from database
+      let streamsQuery = db
+        .select()
+        .from(streams)
+        .where(eq(streams.serverId, serverId));
       
-      // Get streams for this server
+      if (!req.user.isAdmin) {
+        streamsQuery = streamsQuery
+          .innerJoin(permissions, eq(permissions.streamId, streams.id))
+          .where(eq(permissions.userId, req.user.id));
+      }
+      
+      const streamData = await streamsQuery;
+      
+      // Then get active streams from Flussonic
       try {
         console.log(`Fetching streams for server ${server.name} (${server.url})`);
         const activeStreams = await flussonicService.getStreams(server);
@@ -195,18 +209,6 @@ export function registerRoutes(app: Express): Server {
       console.error('Error fetching streams:', error);
       res.status(500).json({ error: 'Failed to fetch streams' });
     }
-      let streamsQuery = db
-        .select()
-        .from(streams)
-        .where(eq(streams.serverId, serverId));
-      
-      if (!req.user.isAdmin) {
-        streamsQuery = streamsQuery
-          .innerJoin(permissions, eq(permissions.streamId, streams.id))
-          .where(eq(permissions.userId, req.user.id));
-      }
-      
-      const streamData = await streamsQuery;
   });
 
   app.post("/api/streams", requireAdmin, async (req, res) => {

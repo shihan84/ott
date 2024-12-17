@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -157,7 +157,7 @@ function ServerManagementContent({ isOpen, setIsOpen }: ServerManagementContentP
               Add Server
             </Button>
           </DialogTrigger>
-          <DialogContent aria-describedby="add-server-description">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Add New Media Server</DialogTitle>
               <DialogDescription id="add-server-description">
@@ -250,7 +250,7 @@ function ServerManagementContent({ isOpen, setIsOpen }: ServerManagementContentP
                 <TableCell>{server.url}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Badge variant={server.status === 'online' ? 'success' : 'destructive'}>
+                    <Badge variant={server.status === 'online' ? 'default' : 'destructive'}>
                       {server.status}
                     </Badge>
                     {server.lastError && (
@@ -314,7 +314,7 @@ function ServerManagementContent({ isOpen, setIsOpen }: ServerManagementContentP
                         </Button>
                       </SheetTrigger>
                       {selectedServer?.id === server.id && (
-                        <SheetContent className="w-[600px]" onOpenChange={(open) => !open && setSelectedServer(null)}>
+                        <SheetContent className="w-[600px]" onPointerDownOutside={() => setSelectedServer(null)}>
                           <SheetHeader>
                             <SheetTitle>Streams - {server.name}</SheetTitle>
                           </SheetHeader>
@@ -343,7 +343,7 @@ function ServerManagementContent({ isOpen, setIsOpen }: ServerManagementContentP
                                     <TableRow key={stream.id}>
                                       <TableCell className="font-medium">{stream.name}</TableCell>
                                       <TableCell>
-                                        <Badge variant={stream.streamStatus?.stats.alive ? 'default' : 'secondary'}>
+                                        <Badge variant={stream.streamStatus?.stats.alive ? 'success' : 'secondary'}>
                                           <Activity className="w-4 h-4 mr-1" />
                                           {stream.streamStatus?.stats.alive ? 'Online' : 'Offline'}
                                         </Badge>
