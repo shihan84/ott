@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import StreamList from "@/components/StreamList";
 import ServerStats from "@/components/ServerStats";
+import ServerHealth from "@/components/ServerHealth";
 import UserManagement from "@/components/UserManagement";
 import AccessControl from "@/components/AccessControl";
+import ServerManagement from "@/components/ServerManagement";
 
 export default function AdminDashboard() {
   const { logout } = useUser();
@@ -28,6 +30,8 @@ export default function AdminDashboard() {
           <UserManagement />
           <AccessControl />
         </div>
+
+        <ServerManagement />
         
         <StreamList />
         

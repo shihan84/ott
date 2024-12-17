@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Activity, Cpu, Memory, Signal, Radio, AlertTriangle } from 'lucide-react';
+import { Activity, Cpu, HardDrive as Memory, Signal, Radio, AlertTriangle } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Server } from '@db/schema';
 
