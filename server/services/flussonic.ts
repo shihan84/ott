@@ -73,8 +73,6 @@ export class FlussonicService {
 
       if (!response.ok) {
         let errorMessage = `HTTP ${response.status}`;
-        let detailedError = '';
-        
         try {
           const errorText = await response.text();
           if (errorText) {
@@ -89,21 +87,12 @@ export class FlussonicService {
           errorMessage = response.statusText;
         }
 
-        // Add more context to common errors
         if (response.status === 404) {
-          detailedError = `Flussonic API not found at ${server.url}. This could mean:
-1. The server URL is incorrect
-2. The API endpoint is not enabled
-3. The server is not running`;
+          throw new Error(`Flussonic API not found at ${server.url}. Please check the server URL.`);
         } else if (response.status === 401) {
-          detailedError = 'Invalid username or password. Please verify your credentials.';
-        } else if (response.status === 403) {
-          detailedError = 'Access forbidden. The provided credentials do not have sufficient permissions.';
-        } else if (response.status >= 500) {
-          detailedError = 'The Flussonic server encountered an internal error. Please check the server logs.';
+          throw new Error('Invalid username or password');
         }
-
-        throw new Error(detailedError || `Flussonic authentication failed: ${errorMessage}`);
+        throw new Error(`Flussonic authentication failed: ${errorMessage}`);
       }
 
       return true;

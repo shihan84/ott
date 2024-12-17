@@ -59,7 +59,4 @@ export const api = {
     
   // Server health monitoring
   getServersHealth: () => fetchApi('/servers/health'),
-  // AI-powered error analysis
-  analyzeServerError: (id: number) =>
-    fetchApi<{ analysis: string }>(`/servers/${id}/analyze-error`, { method: 'POST' }),
 };

@@ -7,7 +7,6 @@ import { users, servers, streams, permissions } from "@db/schema";
 import { eq, and } from "drizzle-orm";
 import { setupFlussonicIntegration } from "./flussonic";
 import { flussonicService } from "./services/flussonic";
-import { anthropicService } from "./services/anthropic";
 
 function requireAuth(req: Express.Request, res: Express.Response, next: Function) {
   if (!req.isAuthenticated()) {
@@ -218,36 +217,6 @@ export function registerRoutes(app: Express): Server {
   });
 
   const httpServer = createServer(app);
-  // AI-powered error analysis endpoint
-  app.post("/api/servers/:id/analyze-error", requireAuth, async (req, res) => {
-    const serverId = parseInt(req.params.id);
-    
-    try {
-      const [server] = await db
-        .select()
-        .from(servers)
-        .where(eq(servers.id, serverId))
-        .limit(1);
-
-      if (!server) {
-        return res.status(404).send("Server not found");
-      }
-
-      const analysis = await anthropicService.analyzeFlussonicError(
-        server.lastError || 'Unknown error',
-        {
-          serverUrl: server.url,
-          lastSuccessful: server.lastSuccessfulAuthAt?.toISOString(),
-          attempts: 1, // TODO: Add attempt tracking
-        }
-      );
-
-      res.json({ analysis });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
 
   // Setup WebSocket server for real-time updates
   setupWebSocket(httpServer);
