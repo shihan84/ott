@@ -42,7 +42,10 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
     console.log('Stream error details:', {
       url,
       error: e,
-      message: errorMessage
+      message: errorMessage,
+      errorType: typeof e,
+      errorKeys: e && typeof e === 'object' ? Object.keys(e) : [],
+      stackTrace: e && e.stack ? e.stack : 'No stack trace'
     });
     
     setError(errorMessage);
