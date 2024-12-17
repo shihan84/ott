@@ -150,17 +150,46 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/streams", requireAuth, async (req, res) => {
     ensureAuthenticated(req);
     
-    if (req.user.isAdmin) {
-      const allStreams = await db.select().from(streams);
-      return res.json(allStreams);
+    try {
+      // Get base stream data
+      let streamsQuery = db.select().from(streams);
+      
+      if (!req.user.isAdmin) {
+        streamsQuery = streamsQuery
+          .innerJoin(permissions, eq(permissions.streamId, streams.id))
+          .where(eq(permissions.userId, req.user.id));
+      }
+      
+      const streamData = await streamsQuery;
+      
+      // Get server data for fetching active streams
+      const serverIds = [...new Set(streamData.map(s => s.serverId))];
+      const serverData = await db
+        .select()
+        .from(servers)
+        .where(eq(servers.id, serverIds[0])); // For now just handle one server
+        
+      if (serverData.length === 0) {
+        return res.json(streamData);
+      }
+      
+      // Get active streams from Flussonic
+      const activeStreams = await StreamStatisticsService.getActiveStreams(serverData[0]);
+      
+      // Merge stream data with active status
+      const enrichedStreams = streamData.map(stream => {
+        const activeStream = activeStreams.find(as => as.name === stream.streamKey);
+        return {
+          ...stream,
+          status: activeStream ? StreamStatisticsService.normalizeStreamStats(activeStream) : null
+        };
+      });
+      
+      res.json(enrichedStreams);
+    } catch (error) {
+      console.error('Error fetching streams:', error);
+      res.status(500).json({ error: 'Failed to fetch streams' });
     }
-
-    const userStreams = await db
-      .select()
-      .from(streams)
-      .innerJoin(permissions, eq(permissions.streamId, streams.id))
-      .where(eq(permissions.userId, req.user.id));
-    res.json(userStreams);
   });
 
   app.post("/api/streams", requireAdmin, async (req, res) => {

@@ -200,3 +200,35 @@ export class FlussonicService {
 }
 
 export const flussonicService = new FlussonicService();
+
+// Stream statistics tracking
+export class StreamStatisticsService {
+  static async getServerStreams(server: typeof servers.$inferSelect): Promise<FlussonicStreamsResponse> {
+    return flussonicService.makeAuthenticatedRequest<FlussonicStreamsResponse>(
+      server,
+      '/streams',
+      { method: 'GET' }
+    );
+  }
+
+  static async getActiveStreams(server: typeof servers.$inferSelect) {
+    try {
+      const response = await this.getServerStreams(server);
+      return response.streams.filter(stream => stream.alive && stream.input);
+    } catch (error) {
+      console.error(`Failed to get active streams for server ${server.name}:`, error);
+      return [];
+    }
+  }
+
+  static normalizeStreamStats(stream: FlussonicStream) {
+    return {
+      name: stream.name,
+      isActive: stream.alive,
+      bitrate: stream.input?.bitrate || 0,
+      bytesIn: stream.input?.bytes_in || 0,
+      activeViewers: stream.clients || 0,
+      uptime: stream.input?.time || 0,
+    };
+  }
+}
