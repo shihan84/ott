@@ -163,6 +163,8 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).send("Server not found");
       }
 
+      console.log('Starting stream fetch for server:', serverId);
+      
       // First get streams from database
       let streamsQuery = db
         .select()
@@ -170,12 +172,15 @@ export function registerRoutes(app: Express): Server {
         .where(eq(streams.serverId, serverId));
       
       if (!req.user.isAdmin) {
+        console.log('User is not admin, applying permission filter');
         streamsQuery = streamsQuery
           .innerJoin(permissions, eq(permissions.streamId, streams.id))
           .where(eq(permissions.userId, req.user.id));
       }
       
+      console.log('Executing database query for streams');
       const streamData = await streamsQuery;
+      console.log('Database streams found:', streamData.length);
       
       // Then get active streams from Flussonic
       try {

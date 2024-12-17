@@ -28,9 +28,18 @@ interface FlussonicStats {
   last_dts: number;
 }
 
-interface FlussonicStream {
+export interface FlussonicStream {
   name: string;
-  stats: FlussonicStats;
+  stats: {
+    alive: boolean;
+    status: string;
+    bytes_in: number;
+    bytes_out: number;
+    input_bitrate: number;
+    online_clients: number;
+    last_access_at: number;
+    last_dts: number;
+  };
   template?: string;
   static: boolean;
   nomedia: boolean;
@@ -69,8 +78,10 @@ export class FlussonicService {
             'Accept': 'application/json'
           }
         },
-        true // Enable schema validation
+        false // Disable schema validation temporarily for debugging
       );
+      
+      console.log('Raw Flussonic API response:', JSON.stringify(response, null, 2));
       
       console.log('Raw Flussonic API response:', JSON.stringify(response, null, 2));
       
@@ -328,7 +339,7 @@ export class StreamStatisticsService {
         return [];
       }
       
-      const activeStreams = response.streams.filter(stream => stream.alive);
+      const activeStreams = response.streams.filter(stream => stream.stats.alive);
       console.log('Found active streams:', activeStreams.length);
       return activeStreams;
     } catch (error) {
@@ -340,9 +351,9 @@ export class StreamStatisticsService {
   static normalizeStreamStats(stream: FlussonicStream): FlussonicStream {
     return {
       name: stream.name,
-      alive: stream.alive,
-      input: stream.input,
-      clients: stream.clients,
+      alive: stream.stats.alive,
+      input: stream.stats.input_bitrate, //Corrected this line
+      clients: stream.stats.online_clients, //Corrected this line
     };
   }
 }
