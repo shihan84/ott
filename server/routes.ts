@@ -550,6 +550,15 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Health check endpoint for production monitoring
+  app.get("/api/health", (_req, res) => {
+    res.json({
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
+
   const httpServer = createServer(app);
 
   // Setup WebSocket server for real-time updates
