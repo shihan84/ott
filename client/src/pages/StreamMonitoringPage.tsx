@@ -106,7 +106,16 @@ export default function StreamMonitoringPage() {
   ) || [];
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto py-6 space-y-4">
+      <div className="flex items-center mb-4">
+        <Button 
+          variant="outline" 
+          onClick={() => setLocation(user?.isAdmin ? `/servers/${serverId}/streams` : '/')}
+        >
+          <ChevronLeft className="w-4 h-4 mr-2" />
+          Back to Streams
+        </Button>
+      </div>
       <div className="flex justify-center mb-6">
         <div className="w-full max-w-[600px]">
           <StreamPlayer 
@@ -117,20 +126,11 @@ export default function StreamMonitoringPage() {
         </div>
       </div>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>{stream.name}</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Stream Details and Monitoring
-            </p>
-          </div>
-          <Button 
-            variant="outline" 
-            onClick={() => setLocation(user?.isAdmin ? `/servers/${serverId}/streams` : '/')}
-          >
-            <ChevronLeft className="w-4 h-4 mr-2" />
-            Back to Streams
-          </Button>
+        <CardHeader>
+          <CardTitle>{stream.name}</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            Stream Details and Monitoring
+          </p>
         </CardHeader>
       </Card>
 
