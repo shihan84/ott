@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent } from '@/components/ui/card';
 import { formatBytes } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -34,8 +34,7 @@ export default function MonthlyTrafficStats({ streamId }: MonthlyTrafficStatsPro
         month: 'long', 
         year: 'numeric' 
       }),
-      bytesIn: Number(stat.bytesIn),
-      bytesOut: Number(stat.bytesOut),
+      totalBytes: Number(stat.bytesIn) + Number(stat.bytesOut),
       lastUpdated: new Date(stat.lastUpdated).toLocaleString(),
     }));
   }, [stats]);
@@ -48,35 +47,23 @@ export default function MonthlyTrafficStats({ streamId }: MonthlyTrafficStatsPro
     );
   }
 
-
   return (
-    <div className="relative">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Month</TableHead>
-            <TableHead>Total Transfer</TableHead>
-            <TableHead>Last Updated</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {!stats || tableData.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={3} className="text-center text-muted-foreground py-4">
-                No traffic data available for this stream
-              </TableCell>
-            </TableRow>
-          ) : (
-            tableData.map((row, index) => (
-              <TableRow key={index}>
-                <TableCell>{row.month}</TableCell>
-                <TableCell>{formatBytes(row.bytesIn + row.bytesOut)}</TableCell>
-                <TableCell className="text-muted-foreground">{row.lastUpdated}</TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {!stats || tableData.length === 0 ? (
+        <div className="col-span-full text-center text-muted-foreground py-4">
+          No traffic data available for this stream
+        </div>
+      ) : (
+        tableData.map((row, index) => (
+          <Card key={index}>
+            <CardContent className="pt-6">
+              <div className="text-2xl font-bold">{formatBytes(row.totalBytes)}</div>
+              <p className="text-xs text-muted-foreground mt-1">{row.month}</p>
+              <p className="text-xs text-muted-foreground mt-1">Last updated: {row.lastUpdated}</p>
+            </CardContent>
+          </Card>
+        ))
+      )}
     </div>
   );
 }
