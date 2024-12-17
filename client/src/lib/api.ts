@@ -62,4 +62,8 @@ export const api = {
       bytesOut: number;
       lastUpdated: string;
     }>>(`/streams/${streamId}/traffic`),
+    
+  // Get all permitted streams for the current user
+  getPermittedStreams: () =>
+    fetchApi<StreamWithStats[]>('/streams/permitted'),
 };

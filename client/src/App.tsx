@@ -9,6 +9,7 @@ import StreamsPage from "./pages/StreamsPage";
 import StreamMonitoringPage from "./pages/StreamMonitoringPage";
 import ServerManagement from "./components/ServerManagement";
 import AuthPage from "./pages/AuthPage";
+import AllStreamsPage from "./pages/AllStreamsPage";
 import { useUser } from "./hooks/use-user";
 
 function AppContent() {
@@ -29,9 +30,20 @@ function AppContent() {
   return (
     <Layout>
       <Switch>
-        <Route path="/" component={ServerManagement} />
-        <Route path="/servers/:serverId/streams" component={StreamsPage} />
-        <Route path="/servers/:serverId/streams/:streamId" component={StreamMonitoringPage} />
+        {user.isAdmin ? (
+          // Admin routes
+          <>
+            <Route path="/" component={ServerManagement} />
+            <Route path="/servers/:serverId/streams" component={StreamsPage} />
+            <Route path="/servers/:serverId/streams/:streamId" component={StreamMonitoringPage} />
+          </>
+        ) : (
+          // Regular user routes
+          <>
+            <Route path="/" component={AllStreamsPage} />
+            <Route path="/streams/:streamId" component={StreamMonitoringPage} />
+          </>
+        )}
         <Route component={NotFound} />
       </Switch>
     </Layout>

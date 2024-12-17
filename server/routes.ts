@@ -353,6 +353,48 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Get all permitted streams for a user
+  app.get("/api/streams/permitted", requireAuth, async (req, res) => {
+    ensureAuthenticated(req);
+    const user = req.user;
+    
+    try {
+      const query = user.isAdmin
+        ? db
+            .select({
+              id: streams.id,
+              name: streams.name,
+              streamKey: streams.streamKey,
+              active: streams.active,
+              lastSeen: streams.lastSeen,
+              streamStatus: streams.streamStatus,
+              serverId: streams.serverId,
+              createdAt: streams.createdAt
+            })
+            .from(streams)
+        : db
+            .select({
+              id: streams.id,
+              name: streams.name,
+              streamKey: streams.streamKey,
+              active: streams.active,
+              lastSeen: streams.lastSeen,
+              streamStatus: streams.streamStatus,
+              serverId: streams.serverId,
+              createdAt: streams.createdAt
+            })
+            .from(streams)
+            .innerJoin(permissions, eq(permissions.streamId, streams.id))
+            .where(eq(permissions.userId, user.id));
+
+      const userStreams = await query;
+      res.json(userStreams);
+    } catch (error) {
+      console.error('Error fetching permitted streams:', error);
+      res.status(500).send("Failed to fetch streams");
+    }
+  });
+
   app.post("/api/streams", requireAdmin, async (req, res) => {
     const { serverId, name, streamKey } = req.body;
     const newStream = await db
