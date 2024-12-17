@@ -1,6 +1,23 @@
 import type { Stream, Server, User, Permission } from "@db/schema";
 
 // Matches Flussonic API spec from OpenAPI docs
+interface MediaTrack {
+  content: string;
+  codec: string;
+  bitrate?: number;
+  width?: number;
+  height?: number;
+  fps?: number;
+  profile?: string;
+  level?: string;
+  channels?: number;
+  sample_rate?: number;
+}
+
+interface MediaInfo {
+  tracks: MediaTrack[];
+}
+
 export interface StreamStats {
   name: string;
   stats: {
@@ -12,6 +29,8 @@ export interface StreamStats {
     online_clients: number;
     last_access_at: number;
     last_dts: number;
+    opened_at: number;
+    media_info?: MediaInfo;
   };
   template?: string;
   static: boolean;

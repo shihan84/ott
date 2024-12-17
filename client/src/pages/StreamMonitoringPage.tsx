@@ -144,20 +144,20 @@ export default function StreamMonitoringPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {stream.streamStatus.stats.media_info.tracks.map((track, index) => (
+              {stream.streamStatus.stats.media_info.tracks.map((track: MediaTrack, index: number) => (
                 <div key={index} className="space-y-2">
                   <h3 className="font-medium">{track.content.toUpperCase()} Track</h3>
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {Object.entries(track).map(([key, value]) => (
-                      key !== 'content' && (
+                    {Object.entries(track).map(([key, value]) => 
+                      key !== 'content' ? (
                         <div key={key} className="flex justify-between space-x-4">
                           <span className="text-sm text-muted-foreground capitalize">
                             {key.replace(/_/g, ' ')}
                           </span>
                           <span className="text-sm font-medium">{value?.toString() || 'N/A'}</span>
                         </div>
-                      )
-                    ))}
+                      ) : null
+                    )}
                   </div>
                 </div>
               ))}

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle, Loader2 } from "lucide-react";
 import StreamsPage from "./pages/StreamsPage";
+import StreamMonitoringPage from "./pages/StreamMonitoringPage";
 import ServerManagement from "./components/ServerManagement";
 import AuthPage from "./pages/AuthPage";
 import { useUser } from "./hooks/use-user";
