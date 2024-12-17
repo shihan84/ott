@@ -111,7 +111,7 @@ export default function StreamMonitoringPage() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-3xl mx-auto">
         <StreamPlayer 
           url={streamUrl} 
           title={stream.name}
