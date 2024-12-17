@@ -2,10 +2,10 @@ import { useParams } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Loader2 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { Activity, Users, Wifi, Clock } from 'lucide-react';
-import type { StreamWithStats } from '@/types';
+import type { StreamWithStats, MediaTrack } from '@/types';
 import { api } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -42,6 +42,14 @@ export default function StreamMonitoringPage() {
     },
     refetchInterval: 5000, // Refresh every 5 seconds
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!stream) {
     return (
@@ -137,7 +145,7 @@ export default function StreamMonitoringPage() {
         </Card>
       </div>
 
-      {stream.streamStatus?.stats.media_info && (
+      {stream.streamStatus?.stats?.media_info?.tracks && (
         <Card>
           <CardHeader>
             <CardTitle>Stream Information</CardTitle>
@@ -148,16 +156,17 @@ export default function StreamMonitoringPage() {
                 <div key={index} className="space-y-2">
                   <h3 className="font-medium">{track.content.toUpperCase()} Track</h3>
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {Object.entries(track).map(([key, value]) => 
-                      key !== 'content' ? (
+                    {Object.entries(track).map(([key, value]) => {
+                      if (key === 'content') return null;
+                      return (
                         <div key={key} className="flex justify-between space-x-4">
                           <span className="text-sm text-muted-foreground capitalize">
                             {key.replace(/_/g, ' ')}
                           </span>
                           <span className="text-sm font-medium">{value?.toString() || 'N/A'}</span>
                         </div>
-                      ) : null
-                    )}
+                      );
+                    })}
                   </div>
                 </div>
               ))}
