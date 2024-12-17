@@ -14,6 +14,7 @@ import { api } from '@/lib/api';
 import type { Server } from '@db/schema';
 import { AlertCircle, CheckCircle2, Loader2, RefreshCw, ServerIcon, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { AIErrorTooltip } from "./AIErrorTooltip";
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -213,19 +214,7 @@ export default function ServerManagement() {
                       {server.status}
                     </Badge>
                     {server.lastError && (
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <AlertCircle className="w-4 h-4 text-destructive" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{server.lastError}</p>
-                          {server.lastErrorAt && (
-                            <p className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(server.lastErrorAt), { addSuffix: true })}
-                            </p>
-                          )}
-                        </TooltipContent>
-                      </Tooltip>
+                      <AIErrorTooltip server={server} />
                     )}
                     {server.lastSuccessfulAuthAt && (
                       <Tooltip>
