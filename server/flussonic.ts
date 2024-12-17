@@ -2,6 +2,7 @@ import { servers, streams } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 import type { StreamStats } from "../client/src/types";
+import { flussonicService } from "./services/flussonic";
 
 // Flussonic API response types
 interface FlussonicStreamInput {

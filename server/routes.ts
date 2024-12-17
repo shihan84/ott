@@ -52,7 +52,7 @@ export function registerRoutes(app: Express): Server {
           try {
             // Validate server authentication and fetch stats
             await flussonicService.validateAuth(server);
-            const systemStats = await flussonicService.makeAuthenticatedRequest(server, '/status');
+            const systemStats = await flussonicService.makeAuthenticatedRequest(server, '/system_stat');
             const streamsStats = await flussonicService.makeAuthenticatedRequest(server, '/streams');
             
             return {
