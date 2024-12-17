@@ -5,9 +5,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, Activity, Users, Wifi, ChevronLeft } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, formatDistance } from 'date-fns';
 import type { StreamWithStats } from '@/types';
 import { api } from '@/lib/api';
+
+function formatBitrate(bitrate: number): string {
+  if (bitrate >= 1000000) {
+    return `${(bitrate / 1000000).toFixed(2)} Mbps`;
+  } else if (bitrate >= 1000) {
+    return `${(bitrate / 1000).toFixed(2)} Kbps`;
+  }
+  return `${bitrate} bps`;
+}
+
+function formatUptime(timestamp: number): string {
+  if (!timestamp) return 'Unknown';
+  const now = Date.now();
+  const startTime = timestamp * 1000; // Convert to milliseconds
+  return formatDistance(startTime, now, { addSuffix: false });
+}
 
 export default function StreamsPage() {
   const [, setLocation] = useLocation();
@@ -76,13 +92,13 @@ export default function StreamsPage() {
                       <div className="flex items-center">
                         <Wifi className="w-4 h-4 mr-1" />
                         {stream.streamStatus?.stats.input_bitrate 
-                          ? `${Math.round(stream.streamStatus.stats.input_bitrate / 1024)} Kbps` 
+                          ? `${formatBitrate(stream.streamStatus.stats.input_bitrate)}` 
                           : 'N/A'}
                       </div>
                     </TableCell>
                     <TableCell>
                       {stream.streamStatus?.stats.alive && stream.streamStatus.stats.last_dts
-                        ? formatDistanceToNow(new Date(stream.streamStatus.stats.last_dts * 1000), { addSuffix: true })
+                        ? formatUptime(stream.streamStatus.stats.opened_at)
                         : 'Offline'
                       }
                     </TableCell>
