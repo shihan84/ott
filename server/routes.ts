@@ -49,6 +49,8 @@ export function registerRoutes(app: Express): Server {
       const serversWithHealth = await Promise.all(
         allServers.map(async (server) => {
           try {
+            // Validate server authentication first
+            await flussonicService.validateToken(server.id);
             const stats = await fetchServerStats(server);
             return {
               ...server,

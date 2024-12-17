@@ -70,31 +70,9 @@ export async function setupFlussonicIntegration() {
 
 async function fetchServerStats(server: typeof servers.$inferSelect) {
   try {
-    // Flussonic API expects Basic auth with API token as username and empty password
-    const auth = Buffer.from(`${server.apiKey}:`).toString('base64');
-    
-    const [streamsResponse, systemResponse] = await Promise.all([
-      fetch(`${server.url}/api/v3/streams`, {
-        headers: {
-          'Authorization': `Basic ${auth}`,
-          'Accept': 'application/json',
-        },
-      }),
-      fetch(`${server.url}/api/v3/system_stat`, {
-        headers: {
-          'Authorization': `Basic ${auth}`,
-          'Accept': 'application/json',
-        },
-      }),
-    ]);
-
-    if (!streamsResponse.ok || !systemResponse.ok) {
-      throw new Error(`Flussonic API error: ${streamsResponse.statusText || systemResponse.statusText}`);
-    }
-
     const [streamsData, systemData] = await Promise.all([
-      streamsResponse.json(),
-      systemResponse.json(),
+      flussonicService.makeAuthenticatedRequest(server, '/streams'),
+      flussonicService.makeAuthenticatedRequest(server, '/system_stat'),
     ]);
 
     // Map Flussonic API response to our expected format
