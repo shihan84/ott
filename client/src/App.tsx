@@ -28,6 +28,7 @@ function AppContent() {
     <Switch>
       <Route path="/" component={ServerManagement} />
       <Route path="/servers/:serverId/streams" component={StreamsPage} />
+      <Route path="/servers/:serverId/streams/:streamId" component={StreamMonitoringPage} />
       <Route component={NotFound} />
     </Switch>
   );

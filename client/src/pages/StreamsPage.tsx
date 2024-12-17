@@ -78,7 +78,11 @@ export default function StreamsPage() {
               </TableHeader>
               <TableBody>
                 {streams?.map((stream) => (
-                  <TableRow key={stream.id}>
+                  <TableRow 
+                    key={stream.id} 
+                    className="cursor-pointer hover:bg-accent/50"
+                    onClick={() => setLocation(`/servers/${serverId}/streams/${stream.id}`)}
+                  >
                     <TableCell className="font-medium">{stream.name}</TableCell>
                     <TableCell>
                       <Badge variant={stream.streamStatus?.stats.alive ? 'default' : 'secondary'}>
