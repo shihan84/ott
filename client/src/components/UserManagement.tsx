@@ -40,15 +40,29 @@ export default function UserManagement() {
     queryFn: api.getUsers,
   });
 
+  const { data: servers } = useQuery({
+    queryKey: ['/api/servers'],
+    queryFn: api.getServers,
+  });
+
   const { data: streams } = useQuery({
-    queryKey: ['/api/streams'],
+    queryKey: ['/api/servers/streams'],
     queryFn: async () => {
-      const servers = await api.getServers();
+      if (!servers) return [];
       const allStreams = await Promise.all(
-        servers.map(server => api.getServerStreams(server.id))
+        servers.map(async (server) => {
+          try {
+            const serverStreams = await api.getServerStreams(server.id);
+            return serverStreams;
+          } catch (error) {
+            console.error(`Failed to fetch streams for server ${server.id}:`, error);
+            return [];
+          }
+        })
       );
       return allStreams.flat();
     },
+    enabled: !!servers,
   });
 
   const { data: userPermissions } = useQuery({
@@ -178,15 +192,28 @@ export default function UserManagement() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Manage Stream Permissions</DialogTitle>
+            <DialogDescription>
+              {selectedUser ? `Manage stream access for ${selectedUser.username}` : 'Loading...'}
+            </DialogDescription>
           </DialogHeader>
+
           {selectedUser && (
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-medium mb-2">User: {selectedUser.username}</h3>
-                <div className="space-y-2">
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Add Stream Permission</h4>
                   <Select
                     onValueChange={(value) => {
                       const streamId = parseInt(value);
+                      if (!streamId || isNaN(streamId)) {
+                        toast({
+                          title: "Error",
+                          description: "Invalid stream selected",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+
                       api.addUserPermission(selectedUser.id, streamId)
                         .then(() => {
                           queryClient.invalidateQueries({ 
@@ -210,25 +237,41 @@ export default function UserManagement() {
                       <SelectValue placeholder="Select a stream" />
                     </SelectTrigger>
                     <SelectContent>
-                      {streams?.map((stream) => (
-                        <SelectItem key={stream.id} value={stream.id.toString()}>
-                          {stream.name}
-                        </SelectItem>
-                      ))}
+                      {streams?.map((stream) => {
+                        // Don't show streams that the user already has permission for
+                        const hasPermission = userPermissions?.some(p => p.streamId === stream.id);
+                        if (hasPermission) return null;
+                        
+                        return (
+                          <SelectItem key={stream.id} value={stream.id.toString()}>
+                            {stream.name}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="mt-4">
+
+                <div>
                   <h4 className="text-sm font-medium mb-2">Current Permissions</h4>
-                  {userPermissions?.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No permissions</p>
+                  {!userPermissions ? (
+                    <div className="text-center py-4">
+                      <Loader2 className="w-6 h-6 animate-spin mx-auto" />
+                    </div>
+                  ) : userPermissions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-2">No permissions assigned</p>
                   ) : (
                     <div className="space-y-2">
-                      {userPermissions?.map((permission) => {
+                      {userPermissions.map((permission) => {
                         const stream = streams?.find(s => s.id === permission.streamId);
+                        if (!stream) return null;
+                        
                         return (
-                          <div key={permission.streamId} className="flex items-center justify-between">
-                            <span>{stream?.name}</span>
+                          <div 
+                            key={permission.streamId} 
+                            className="flex items-center justify-between p-2 rounded-md border"
+                          >
+                            <span className="font-medium">{stream.name}</span>
                             <Button
                               variant="destructive"
                               size="sm"
