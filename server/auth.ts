@@ -29,7 +29,27 @@ const crypto = {
   },
 };
 
-export function setupAuth(app: Express) {
+  // Create default admin user if none exists
+  async function createDefaultAdminIfNeeded() {
+    const [existingAdmin] = await db
+      .select()
+      .from(users)
+      .where(eq(users.isAdmin, true))
+      .limit(1);
+
+    if (!existingAdmin) {
+      const password = await crypto.hash("admin123");
+      await db.insert(users).values({
+        username: "admin",
+        password,
+        isAdmin: true,
+      });
+      console.log("Created default admin user");
+    }
+  }
+
+export async function setupAuth(app: Express) {
+  await createDefaultAdminIfNeeded();
   const MemoryStore = createMemoryStore(session);
   const sessionSettings: session.SessionOptions = {
     secret: process.env.REPL_ID || "video-stream-secret",

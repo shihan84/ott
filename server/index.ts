@@ -10,7 +10,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Setup authentication before routes
-setupAuth(app);
+await setupAuth(app);
 
 app.use((req, res, next) => {
   const start = Date.now();
