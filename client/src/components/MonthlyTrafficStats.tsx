@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatBytes } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface MonthlyTrafficStatsProps {
   streamId: number;
@@ -11,10 +12,12 @@ interface MonthlyTrafficStatsProps {
 
 export default function MonthlyTrafficStats({ streamId }: MonthlyTrafficStatsProps) {
   const { toast } = useToast();
-  const { data: stats, isLoading, error } = useQuery({
+  const { data: stats, isLoading } = useQuery({
     queryKey: ['/api/streams', streamId, 'traffic'],
     queryFn: () => api.getStreamTraffic(streamId),
-    onError: (error) => {
+    retry: false,
+    staleTime: 30000, // Refresh every 30 seconds
+    onError: (error: Error) => {
       console.error('Failed to load traffic stats:', error);
       toast({
         title: "Error",
@@ -44,6 +47,14 @@ export default function MonthlyTrafficStats({ streamId }: MonthlyTrafficStatsPro
     );
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[300px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="relative">
       <Table>
@@ -55,7 +66,7 @@ export default function MonthlyTrafficStats({ streamId }: MonthlyTrafficStatsPro
           </TableRow>
         </TableHeader>
         <TableBody>
-          {tableData.length === 0 ? (
+          {!stats || tableData.length === 0 ? (
             <TableRow>
               <TableCell colSpan={3} className="text-center text-muted-foreground py-4">
                 No traffic data available for this stream
