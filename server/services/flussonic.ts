@@ -1,19 +1,59 @@
-import type { Agent } from 'node:https';
 import { servers } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
-
-interface AuthResponse {
-  token: string;
-  expires: number;
-}
+import https from 'node:https';
 
 interface FlussonicError {
   error: string;
   description?: string;
 }
 
+interface FlussonicSystemStats {
+  cpu: {
+    total: number;
+    user: number;
+    system: number;
+  };
+  memory: {
+    total: number;
+    used: number;
+    free: number;
+  };
+  uptime: number;
+}
+
+interface FlussonicStream {
+  name: string;
+  alive: boolean;
+  clients: number;
+  bytes_in?: number;
+  input?: {
+    bitrate?: number;
+    time?: number;
+  };
+}
+
+interface FlussonicStreamsResponse {
+  streams: FlussonicStream[];
+}
+
 export class FlussonicService {
+  private async makeRequest(url: string, options: RequestInit & { rejectUnauthorized?: boolean } = {}) {
+    const { rejectUnauthorized = true, ...fetchOptions } = options;
+    
+    if (process.env.NODE_ENV === 'development') {
+      // In development, create a custom HTTPS agent that can handle self-signed certs
+      const httpsAgent = new https.Agent({ rejectUnauthorized });
+      return fetch(url, {
+        ...fetchOptions,
+        //@ts-ignore - the agent property is actually supported by node-fetch
+        agent: url.startsWith('https:') ? httpsAgent : undefined,
+      });
+    }
+    
+    return fetch(url, fetchOptions);
+  }
+
   async validateAuth(server: typeof servers.$inferSelect): Promise<boolean> {
     try {
       // Test authentication using the streams endpoint
@@ -23,15 +63,12 @@ export class FlussonicService {
       console.log(`Testing authentication with Flussonic server at: ${apiUrl}`);
       
       const basicAuth = Buffer.from(`${server.username}:${server.password}`).toString('base64');
-      const response = await fetch(apiUrl, {
+      const response = await this.makeRequest(apiUrl, {
         headers: {
           'Authorization': `Basic ${basicAuth}`,
           'Accept': 'application/json',
         },
-        agent: process.env.NODE_ENV === 'development' && serverUrl.protocol === 'https:' ? 
-          new (await import('node:https')).Agent({
-            rejectUnauthorized: false
-          }) : undefined
+        rejectUnauthorized: process.env.NODE_ENV !== 'development'
       });
 
       if (!response.ok) {
@@ -59,7 +96,7 @@ export class FlussonicService {
       }
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Failed to authenticate with Flussonic server ${server.name}:`, error);
       await db
         .update(servers)
@@ -72,7 +109,7 @@ export class FlussonicService {
     }
   }
 
-  async makeAuthenticatedRequest<T>(
+  async makeAuthenticatedRequest<T extends FlussonicSystemStats | FlussonicStreamsResponse>(
     server: typeof servers.$inferSelect,
     endpoint: string,
     options: RequestInit = {}
@@ -88,18 +125,14 @@ export class FlussonicService {
       console.log(`Making request to Flussonic API: ${apiUrl}`);
       
       const basicAuth = Buffer.from(`${server.username}:${server.password}`).toString('base64');
-      const response = await fetch(apiUrl, {
+      const response = await this.makeRequest(apiUrl, {
         ...options,
         headers: {
           ...options.headers,
           'Authorization': `Basic ${basicAuth}`,
           'Accept': 'application/json',
         },
-        // Allow self-signed certificates in development only for HTTPS
-        agent: process.env.NODE_ENV === 'development' && serverUrl.protocol === 'https:' ? 
-          new (await import('node:https')).Agent({
-            rejectUnauthorized: false
-          }) : undefined
+        rejectUnauthorized: process.env.NODE_ENV !== 'development'
       });
 
       if (!response.ok) {
@@ -127,8 +160,9 @@ export class FlussonicService {
         throw new Error(`Flussonic API error (${response.status}): ${errorMessage}`);
       }
 
-      return response.json();
-    } catch (error) {
+      const data = await response.json();
+      return data as T;
+    } catch (error: any) {
       console.error(`Failed to make request to ${endpoint}:`, error);
       // Update server status
       await db

@@ -52,19 +52,29 @@ export function registerRoutes(app: Express): Server {
           try {
             // Validate server authentication and fetch stats
             await flussonicService.validateAuth(server);
-            const systemStats = await flussonicService.makeAuthenticatedRequest(server, '/system_stat');
-            const streamsStats = await flussonicService.makeAuthenticatedRequest(server, '/streams');
+            const [systemStats, streamsStats] = await Promise.all([
+              flussonicService.makeAuthenticatedRequest(server, '/system_stat'),
+              flussonicService.makeAuthenticatedRequest(server, '/streams')
+            ]);
             
+            // Calculate health metrics
+            const memoryUsage = systemStats.memory 
+              ? (systemStats.memory.used / systemStats.memory.total) * 100 
+              : 0;
+            
+            const activeStreams = streamsStats.streams.length;
+            const totalBandwidth = streamsStats.streams.reduce((sum, stream) => {
+              return sum + (stream.bytes_in || 0);
+            }, 0);
+
             return {
               ...server,
               health: {
                 status: 'online',
-                cpuUsage: systemStats.cpu?.total || 0,
-                memoryUsage: systemStats.memory ? 
-                  (systemStats.memory.used / systemStats.memory.total) * 100 : 0,
-                activeStreams: (streamsStats.streams || []).length,
-                totalBandwidth: (streamsStats.streams || [])
-                  .reduce((sum: number, stream: any) => sum + (stream.bytes_in || 0), 0),
+                cpuUsage: systemStats.cpu.total,
+                memoryUsage,
+                activeStreams,
+                totalBandwidth,
                 lastChecked: new Date().toISOString(),
               },
             };
