@@ -1,4 +1,4 @@
-import type { Server } from '@db/schema';
+import type { Server, User } from '@db/schema';
 import type { StreamWithStats } from '../types';
 
 const API_BASE = '/api';
