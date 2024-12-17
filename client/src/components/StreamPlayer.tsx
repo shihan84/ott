@@ -45,7 +45,8 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
       message: errorMessage,
       errorType: typeof e,
       errorKeys: e && typeof e === 'object' ? Object.keys(e) : [],
-      stackTrace: e && e.stack ? e.stack : 'No stack trace'
+      stackTrace: e && e.stack ? e.stack : 'No stack trace',
+      expectedFormat: 'https://server.domain/streamKey/index.m3u8'
     });
     
     setError(errorMessage);

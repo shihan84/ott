@@ -106,33 +106,19 @@ export default function StreamMonitoringPage() {
       return '';
     }
 
-    const baseUrl = stream.server.url.replace(/\/$/, '');
-    const cleanBaseUrl = baseUrl.replace(/^https?:\/\//, '');
+    // Use the exact server URL and streamKey format
+    const url = `${stream.server.url.replace(/\/$/, '')}/${stream.streamKey}/index.m3u8`;
     
-    // Try different URL patterns in order:
-    // 1. Standard HLS path
-    const primaryUrl = `${window.location.protocol}//${cleanBaseUrl}/live/${stream.streamKey}/index.m3u8`;
-    
-    // 2. Alternative paths (uncomment if needed)
-    const fallbackUrls = [
-      // `${window.location.protocol}//${cleanBaseUrl}/streaming/${stream.streamKey}/index.m3u8`,
-      // `${window.location.protocol}//${cleanBaseUrl}/hls/${stream.streamKey}/index.m3u8`,
-      // Direct stream URL as last resort
-      // `${window.location.protocol}//${cleanBaseUrl}/${stream.streamKey}/index.m3u8`
-    ];
-    
-    console.log('Stream URLs:', {
-      primary: primaryUrl,
-      fallbacks: fallbackUrls,
+    console.log('Stream URL:', {
+      url,
       streamDetails: {
-        serverUrl: baseUrl,
+        serverUrl: stream.server.url,
         streamKey: stream.streamKey,
-        isAlive: stream.streamStatus?.stats.alive,
-        protocol: window.location.protocol
+        isAlive: stream.streamStatus?.stats.alive
       }
     });
     
-    return primaryUrl;
+    return url;
   })();
   
   // Detailed logging for stream debugging
