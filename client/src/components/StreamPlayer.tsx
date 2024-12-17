@@ -16,15 +16,33 @@ interface StreamPlayerProps {
   }>;
 }
 
+interface ConnectionState {
+  status: 'connecting' | 'connected' | 'disconnected' | 'error' | 'reconnecting';
+  lastUpdate: Date;
+  errorCount: number;
+  message?: string;
+}
+
 export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerProps) {
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [connectionState, setConnectionState] = useState<ConnectionState>({
+    status: 'connecting',
+    lastUpdate: new Date(),
+    errorCount: 0
+  });
 
   const handleReady = useCallback(() => {
     setIsReady(true);
     setError(null);
+    setConnectionState({
+      status: 'connected',
+      lastUpdate: new Date(),
+      errorCount: 0,
+      message: 'Stream connected successfully'
+    });
   }, []);
 
   const handleError = useCallback((e: any) => {
@@ -51,6 +69,18 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
     
     setError(errorMessage);
     setIsReady(false);
+    
+    setConnectionState(prev => {
+      const newErrorCount = prev.errorCount + 1;
+      return {
+        status: newErrorCount > 3 ? 'error' : 'reconnecting',
+        lastUpdate: new Date(),
+        errorCount: newErrorCount,
+        message: newErrorCount > 3 
+          ? 'Stream connection failed. Please try again later.' 
+          : `Reconnecting... (Attempt ${newErrorCount}/3)`
+      };
+    });
   }, [url]);
 
   const toggleFullscreen = useCallback(() => {
@@ -70,6 +100,31 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
         <CardTitle>{title || 'Live Stream'}</CardTitle>
       </CardHeader>
       <CardContent className="p-0 relative aspect-video bg-black">
+        {/* Connection Status Indicator */}
+        <div className={cn(
+          'absolute top-2 right-2 z-10 flex items-center gap-2 px-2 py-1 rounded-full',
+          {
+            'bg-yellow-500/80': connectionState.status === 'connecting',
+            'bg-green-500/80': connectionState.status === 'connected',
+            'bg-red-500/80': connectionState.status === 'error',
+            'bg-blue-500/80': connectionState.status === 'reconnecting'
+          }
+        )}>
+          <div className={cn(
+            'w-2 h-2 rounded-full',
+            {
+              'animate-pulse bg-yellow-300': connectionState.status === 'connecting',
+              'bg-green-300': connectionState.status === 'connected',
+              'bg-red-300': connectionState.status === 'error',
+              'animate-pulse bg-blue-300': connectionState.status === 'reconnecting'
+            }
+          )} />
+          <span className="text-xs font-medium text-white">
+            {connectionState.status === 'connected' ? 'Live' : connectionState.message}
+          </span>
+        </div>
+        
+        {/* Loading/Error State */}
         <div className={cn(
           'absolute inset-0 flex items-center justify-center',
           isReady ? 'opacity-0' : 'opacity-100'
@@ -79,7 +134,15 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
               <span>{error}</span>
               <Button 
                 variant="outline" 
-                onClick={() => setIsPlaying(true)}
+                onClick={() => {
+                  setIsPlaying(true);
+                  setConnectionState({
+                    status: 'connecting',
+                    lastUpdate: new Date(),
+                    errorCount: 0,
+                    message: 'Connecting to stream...'
+                  });
+                }}
               >
                 Retry
               </Button>
