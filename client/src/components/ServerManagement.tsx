@@ -303,80 +303,13 @@ function ServerManagementContent({ isOpen, setIsOpen }: ServerManagementContentP
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
-                    <Sheet>
-                      <SheetTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedServer(server)}
-                        >
-                          View Streams
-                        </Button>
-                      </SheetTrigger>
-                      {selectedServer?.id === server.id && (
-                        <SheetContent className="w-[600px]" onPointerDownOutside={() => setSelectedServer(null)}>
-                          <SheetHeader>
-                            <SheetTitle>Streams - {server.name}</SheetTitle>
-                          </SheetHeader>
-                          <div className="mt-4">
-                            {isLoadingStreams ? (
-                              <div className="flex items-center justify-center p-4">
-                                <Loader2 className="h-6 w-6 animate-spin" />
-                              </div>
-                            ) : streams?.length === 0 ? (
-                              <div className="text-center p-4 text-muted-foreground">
-                                No streams found for this server
-                              </div>
-                            ) : (
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Viewers</TableHead>
-                                    <TableHead>Bitrate</TableHead>
-                                    <TableHead>Uptime</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {streams?.map((stream) => (
-                                    <TableRow key={stream.id}>
-                                      <TableCell className="font-medium">{stream.name}</TableCell>
-                                      <TableCell>
-                                        <Badge variant={stream.streamStatus?.stats.alive ? 'success' : 'secondary'}>
-                                          <Activity className="w-4 h-4 mr-1" />
-                                          {stream.streamStatus?.stats.alive ? 'Online' : 'Offline'}
-                                        </Badge>
-                                      </TableCell>
-                                      <TableCell>
-                                        <div className="flex items-center">
-                                          <Users className="w-4 h-4 mr-1" />
-                                          {stream.streamStatus?.stats.online_clients || 0}
-                                        </div>
-                                      </TableCell>
-                                      <TableCell>
-                                        <div className="flex items-center">
-                                          <Wifi className="w-4 h-4 mr-1" />
-                                          {stream.streamStatus?.stats.input_bitrate 
-                                            ? `${Math.round(stream.streamStatus.stats.input_bitrate / 1024)} Kbps` 
-                                            : 'N/A'}
-                                        </div>
-                                      </TableCell>
-                                      <TableCell>
-                                        {stream.streamStatus?.stats.alive && stream.streamStatus.stats.last_dts
-                                          ? formatDistanceToNow(new Date(stream.streamStatus.stats.last_dts * 1000), { addSuffix: true })
-                                          : 'Offline'
-                                        }
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            )}
-                          </div>
-                        </SheetContent>
-                      )}
-                    </Sheet>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setLocation(`/servers/${server.id}/streams`)}
+                    >
+                      View Streams
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
