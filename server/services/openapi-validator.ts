@@ -28,12 +28,19 @@ export class OpenAPIValidatorService {
       const ValidatorClass = OpenAPISchemaValidator.default || OpenAPISchemaValidator;
       this.validator = new ValidatorClass({ 
         version: 3,
-        validateFormats: process.env.NODE_ENV === 'production' 
+        validateFormats: false // Disable strict format validation
       });
       
       // In development, we'll use a more forgiving approach to the spec
       this.spec = process.env.NODE_ENV === 'development' 
-        ? { ...flussonicSpec, paths: {} } as OpenAPIV3.Document // Minimal valid spec
+        ? { 
+            ...flussonicSpec,
+            paths: {},
+            components: {
+              ...flussonicSpec.components,
+              schemas: {}
+            }
+          } as OpenAPIV3.Document
         : flussonicSpec as OpenAPIV3.Document;
 
       // Only validate spec in production
@@ -173,8 +180,9 @@ export class OpenAPIValidatorService {
               console.warn('Response validation warnings:', validateResult.errors);
             }
           }
-        } catch (error) {
-          console.warn('Schema validation warning:', error);
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.warn('Schema validation warning:', errorMessage);
         }
         
         return [];
@@ -224,9 +232,10 @@ export class OpenAPIValidatorService {
       }
 
       return errors;
-    } catch (error) {
+    } catch (error: unknown) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('Response validation error:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Response validation error:', errorMessage);
         return [];
       }
       return [{

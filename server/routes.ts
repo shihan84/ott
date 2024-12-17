@@ -11,7 +11,7 @@ import { flussonicService } from "./services/flussonic";
 // Extend Express Request type to include our User type
 declare global {
   namespace Express {
-    interface User extends User {}
+    interface User extends SelectUser {}
   }
 }
 
