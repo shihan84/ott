@@ -61,22 +61,26 @@ export default function StreamMonitoringPage() {
     bytesOut: number;
   }>>([]);
   
+  // Determine the query function based on user role
+  const queryFn = async () => {
+    if (user?.isAdmin && serverId) {
+      const streams = await api.getServerStreams(parseInt(serverId));
+      const stream = streams.find(s => s.id === parseInt(streamId!));
+      if (!stream) throw new Error('Stream not found');
+      return stream;
+    } else {
+      const streams = await api.getPermittedStreams();
+      const stream = streams.find(s => s.id === parseInt(streamId!));
+      if (!stream) throw new Error('Stream not found');
+      return stream;
+    }
+  };
+
   const { data: stream, isLoading } = useQuery<StreamWithStats>({
     queryKey: ['/api/streams', streamId],
-    queryFn: async () => {
-      if (user?.isAdmin && serverId) {
-        const streams = await api.getServerStreams(parseInt(serverId));
-        const stream = streams.find(s => s.id === parseInt(streamId!));
-        if (!stream) throw new Error('Stream not found');
-        return stream;
-      } else {
-        const streams = await api.getPermittedStreams();
-        const stream = streams.find(s => s.id === parseInt(streamId!));
-        if (!stream) throw new Error('Stream not found');
-        return stream;
-      }
-    },
+    queryFn,
     refetchInterval: 5000, // Refresh every 5 seconds
+    enabled: Boolean(streamId) // Only run query when streamId is available
   });
 
   if (isLoading) {
@@ -89,21 +93,22 @@ export default function StreamMonitoringPage() {
 
   // Update performance data when stream stats change
   useEffect(() => {
-    if (stream?.streamStatus?.stats) {
-      const { stats } = stream.streamStatus;
-      setPerformanceData(prev => {
-        // Keep last 60 data points (5 minutes with 5-second intervals)
-        const newData = [...prev.slice(-59), {
-          timestamp: Date.now(),
-          bitrate: stats.input_bitrate || 0,
-          viewers: stats.online_clients || 0,
-          bytesIn: stats.bytes_in || 0,
-          bytesOut: stats.bytes_out || 0,
-        }];
-        return newData;
-      });
-    }
-  }, [stream?.streamStatus]);
+    // Always run the effect, but only update data if we have stats
+    const stats = stream?.streamStatus?.stats;
+    if (!stats) return;
+
+    setPerformanceData(prev => {
+      // Keep last 60 data points (5 minutes with 5-second intervals)
+      const newData = [...prev.slice(-59), {
+        timestamp: Date.now(),
+        bitrate: stats.input_bitrate || 0,
+        viewers: stats.online_clients || 0,
+        bytesIn: stats.bytes_in || 0,
+        bytesOut: stats.bytes_out || 0,
+      }];
+      return newData;
+    });
+  }, [stream?.streamStatus?.stats]); // More specific dependency
 
   if (!stream) {
     return (
