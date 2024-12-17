@@ -51,9 +51,10 @@ interface FlussonicSystemStats {
 export class FlussonicService {
   async getStreams(server: typeof servers.$inferSelect): Promise<FlussonicStream[]> {
     try {
+      // Call the Flussonic API endpoint as per OpenAPI spec
       const response = await this.makeAuthenticatedRequest<FlussonicStreamsResponse>(
         server,
-        '/streams',
+        '/streamer/api/v3/streams',
         {
           method: 'GET',
           headers: {
@@ -63,8 +64,25 @@ export class FlussonicService {
         true // Enable schema validation
       );
       
-      console.log('Received streams from Flussonic:', response);
-      return response.streams || [];
+      if (!response || !Array.isArray(response.streams)) {
+        console.warn('Invalid response format from Flussonic API:', response);
+        return [];
+      }
+
+      // Map response to our FlussonicStream type
+      const streams = response.streams.map(stream => ({
+        name: stream.name,
+        alive: stream.alive || false,
+        clients: stream.clients || 0,
+        input: stream.input ? {
+          bitrate: stream.input.bitrate || 0,
+          bytes_in: stream.input.bytes_in || 0,
+          time: stream.input.time || 0
+        } : undefined
+      }));
+
+      console.log('Processed streams from Flussonic:', streams);
+      return streams;
     } catch (error) {
       console.error('Error fetching streams:', error);
       throw error;
@@ -152,9 +170,9 @@ export class FlussonicService {
       // Parse and validate the server URL
       const serverUrl = new URL(server.url);
       
-      // Construct the API URL - use the base URL and append the API path
+      // Construct the API URL - endpoint should already contain the full API path
       const apiPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-      const apiUrl = new URL(`/streamer/api/v3${apiPath}`, serverUrl).toString();
+      const apiUrl = new URL(apiPath, serverUrl).toString();
       
       console.log(`Making request to Flussonic API: ${apiUrl}`);
       
