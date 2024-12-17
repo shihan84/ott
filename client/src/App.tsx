@@ -6,15 +6,37 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle, Loader2 } from "lucide-react";
 import StreamsPage from "./pages/StreamsPage";
 import ServerManagement from "./components/ServerManagement";
+import AuthPage from "./pages/AuthPage";
+import { useUser } from "./hooks/use-user";
+
+function AppContent() {
+  const { user, isLoading } = useUser();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthPage />;
+  }
+
+  return (
+    <Switch>
+      <Route path="/" component={ServerManagement} />
+      <Route path="/servers/:serverId/streams" component={StreamsPage} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Switch>
-        <Route path="/" component={ServerManagement} />
-        <Route path="/servers/:serverId/streams" component={StreamsPage} />
-        <Route component={NotFound} />
-      </Switch>
+      <AppContent />
       <Toaster />
     </QueryClientProvider>
   );

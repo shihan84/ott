@@ -8,18 +8,23 @@ interface LoginCredentials {
 }
 
 async function fetchUser(): Promise<User | null> {
-  const response = await fetch('/api/user', {
-    credentials: 'include'
-  });
+  try {
+    const response = await fetch('/api/user', {
+      credentials: 'include'
+    });
 
-  if (!response.ok) {
-    if (response.status === 401) {
-      return null;
+    if (!response.ok) {
+      if (response.status === 401) {
+        return null;
+      }
+      throw new Error(await response.text());
     }
-    throw new Error(await response.text());
-  }
 
-  return response.json();
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    return null;
+  }
 }
 
 export function useUser() {
@@ -30,7 +35,8 @@ export function useUser() {
     queryKey: ['user'],
     queryFn: fetchUser,
     staleTime: Infinity,
-    retry: false
+    retry: false,
+    refetchOnWindowFocus: false
   });
 
   const loginMutation = useMutation({
@@ -42,7 +48,10 @@ export function useUser() {
         credentials: 'include',
       });
       
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText);
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -67,7 +76,10 @@ export function useUser() {
         method: 'POST',
         credentials: 'include',
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText);
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -76,10 +88,15 @@ export function useUser() {
         title: "Success",
         description: "Logged out successfully",
       });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   });
-
-  
 
   return {
     user,

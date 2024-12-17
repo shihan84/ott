@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -48,36 +48,25 @@ interface ServerManagementContentProps {
 }
 
 function ServerManagementContent({ isOpen, setIsOpen }: ServerManagementContentProps) {
-  const [selectedServer, setSelectedServer] = useState<Server | null>(null);
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: servers, isLoading } = useQuery<Server[]>({
+  const { data: servers, isLoading, error } = useQuery<Server[]>({
     queryKey: ['/api/servers'],
     queryFn: api.getServers,
   });
 
-  const { data: streams, isLoading: isLoadingStreams, error: streamsError } = useQuery<StreamWithStats[]>({
-    queryKey: ['/api/servers', selectedServer?.id, 'streams'],
-    queryFn: async () => {
-      console.log('Fetching streams for server:', selectedServer?.id);
-      const response = await api.getServerStreams(selectedServer!.id);
-      console.log('Streams response:', response);
-      return response;
-    },
-    enabled: !!selectedServer,
-  });
-
-  // Show error toast if stream fetch fails
+  // Show error toast if server fetch fails
   useEffect(() => {
-    if (streamsError) {
+    if (error) {
       toast({
         title: "Error",
-        description: streamsError instanceof Error ? streamsError.message : "Failed to fetch streams",
+        description: error instanceof Error ? error.message : "Failed to fetch servers",
         variant: "destructive",
       });
     }
-  }, [streamsError, toast]);
+  }, [error, toast]);
 
   const form = useForm<z.infer<typeof serverSchema>>({
     resolver: zodResolver(serverSchema),

@@ -1,16 +1,15 @@
 import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
+import { IVerifyOptions, Strategy as LocalStrategy } from "passport-local";
 import { type Express } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { users } from "@db/schema";
+import { users, insertUserSchema } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 
 const scryptAsync = promisify(scrypt);
-
 const crypto = {
   hash: async (password: string) => {
     const salt = randomBytes(16).toString("hex");
@@ -29,27 +28,28 @@ const crypto = {
   },
 };
 
-  // Create default admin user if none exists
-  async function createDefaultAdminIfNeeded() {
-    const [existingAdmin] = await db
-      .select()
-      .from(users)
-      .where(eq(users.isAdmin, true))
-      .limit(1);
+// Create default admin user if none exists
+async function createDefaultAdminIfNeeded() {
+  const [existingAdmin] = await db
+    .select()
+    .from(users)
+    .where(eq(users.isAdmin, true))
+    .limit(1);
 
-    if (!existingAdmin) {
-      const password = await crypto.hash("admin123");
-      await db.insert(users).values({
-        username: "admin",
-        password,
-        isAdmin: true,
-      });
-      console.log("Created default admin user");
-    }
+  if (!existingAdmin) {
+    const password = await crypto.hash("admin123");
+    await db.insert(users).values({
+      username: "admin",
+      password,
+      isAdmin: true,
+    });
+    console.log("Created default admin user (username: admin, password: admin123)");
   }
+}
 
 export async function setupAuth(app: Express) {
   await createDefaultAdminIfNeeded();
+  
   const MemoryStore = createMemoryStore(session);
   const sessionSettings: session.SessionOptions = {
     secret: process.env.REPL_ID || "video-stream-secret",
@@ -84,12 +84,12 @@ export async function setupAuth(app: Express) {
         if (!user) {
           return done(null, false, { message: "Invalid username or password" });
         }
-        
+
         const isMatch = await crypto.compare(password, user.password);
         if (!isMatch) {
           return done(null, false, { message: "Invalid username or password" });
         }
-        
+
         return done(null, user);
       } catch (err) {
         return done(err);
@@ -97,7 +97,7 @@ export async function setupAuth(app: Express) {
     })
   );
 
-  passport.serializeUser((user: any, done) => {
+  passport.serializeUser((user: Express.User, done) => {
     done(null, user.id);
   });
 
@@ -114,28 +114,44 @@ export async function setupAuth(app: Express) {
     }
   });
 
-  
-
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err: any, user: Express.User | false, info: { message: string }) => {
+    const result = insertUserSchema.safeParse(req.body);
+    if (!result.success) {
+      return res
+        .status(400)
+        .send("Invalid input: " + result.error.issues.map(i => i.message).join(", "));
+    }
+
+    const cb = (err: any, user: Express.User | false, info: IVerifyOptions) => {
       if (err) {
         return next(err);
       }
+
       if (!user) {
-        return res.status(401).send(info.message);
+        return res.status(401).send(info.message ?? "Login failed");
       }
-      req.login(user, (err) => {
+
+      req.logIn(user, (err) => {
         if (err) {
           return next(err);
         }
-        return res.json(user);
+
+        return res.json({
+          message: "Login successful",
+          user: { id: user.id, username: user.username, isAdmin: user.isAdmin },
+        });
       });
-    })(req, res, next);
+    };
+    passport.authenticate("local", cb)(req, res, next);
   });
 
   app.post("/api/logout", (req, res) => {
-    req.logout(() => {
-      res.json({ success: true });
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).send("Logout failed");
+      }
+
+      res.json({ message: "Logout successful" });
     });
   });
 
@@ -143,6 +159,7 @@ export async function setupAuth(app: Express) {
     if (!req.isAuthenticated()) {
       return res.status(401).send("Not authenticated");
     }
+
     res.json(req.user);
   });
 }
