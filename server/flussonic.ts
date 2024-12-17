@@ -5,6 +5,11 @@ import type { StreamStats } from "../client/src/types";
 import { flussonicService } from "./services/flussonic";
 
 // Flussonic API response types
+// Interface reflecting the OpenAPI spec
+export interface FlussonicStreamsResponse {
+  streams: FlussonicStream[];
+}
+
 interface FlussonicStreamInput {
   bitrate: number;
   bytes_in: number;

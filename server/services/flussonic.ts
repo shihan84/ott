@@ -2,6 +2,7 @@ import { servers } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 import https from 'node:https';
+import { openAPIValidator } from './openapi-validator';
 
 interface FlussonicError {
   id?: string;
@@ -122,7 +123,8 @@ export class FlussonicService {
   async makeAuthenticatedRequest<T>(
     server: typeof servers.$inferSelect,
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    validateSchema: boolean = true
   ): Promise<T> {
     try {
       // Parse and validate the server URL
@@ -171,6 +173,16 @@ export class FlussonicService {
       }
 
       const data = await response.json();
+      
+      // Validate response against OpenAPI spec if requested
+      if (validateSchema) {
+        const errors = openAPIValidator.validateResponse(endpoint, options.method || 'GET', response.status, data);
+        if (errors.length > 0) {
+          console.error('Response validation errors:', errors);
+          throw new Error(`API response does not match OpenAPI spec: ${errors[0].message}`);
+        }
+      }
+      
       return data as T;
     } catch (error: any) {
       console.error(`Failed to make request to ${endpoint}:`, error);

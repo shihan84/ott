@@ -5,7 +5,7 @@ import { setupWebSocket } from "./websocket";
 import { db } from "@db";
 import { users, servers, streams, permissions, type User } from "@db/schema";
 import { eq, and } from "drizzle-orm";
-import { setupFlussonicIntegration } from "./flussonic";
+import { setupFlussonicIntegration, type FlussonicStreamsResponse } from "./flussonic";
 import { flussonicService } from "./services/flussonic";
 
 // Extend Express Request type to include our User type
