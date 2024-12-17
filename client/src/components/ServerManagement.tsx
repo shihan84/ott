@@ -37,12 +37,17 @@ export default function ServerManagement() {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <TooltipProvider>
-      <ServerManagementContent />
+      <ServerManagementContent isOpen={isOpen} setIsOpen={setIsOpen} />
     </TooltipProvider>
   );
 }
 
-function ServerManagementContent() {
+interface ServerManagementContentProps {
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+}
+
+function ServerManagementContent({ isOpen, setIsOpen }: ServerManagementContentProps) {
   const [selectedServer, setSelectedServer] = useState<Server | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
