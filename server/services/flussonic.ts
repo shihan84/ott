@@ -25,28 +25,47 @@ export class FlussonicService {
       // Flussonic uses Basic Auth with username and password
       const basicAuth = Buffer.from(`${server.username}:${server.password}`).toString('base64');
       
-      const response = await fetch(`${server.url}/flussonic/api/v3/auth`, {
+      // First try to authenticate using the session API
+      const response = await fetch(`${server.url}/flussonic/api/sessions`, {
         method: 'POST',
         headers: {
           'Authorization': `Basic ${basicAuth}`,
           'Accept': 'application/json',
-          'Content-Type': 'application/json',
         },
-        // Add additional required parameters if needed by your Flussonic version
-        body: JSON.stringify({
-          scope: 'streams media_info dvr',  // Request specific access scopes
-        }),
       });
 
       if (!response.ok) {
-        const error = await response.json() as FlussonicError;
-        if (response.status === 401) {
-          throw new Error('Invalid API key or unauthorized access');
+        let errorMessage = `HTTP ${response.status}`;
+        try {
+          const errorText = await response.text();
+          if (errorText) {
+            try {
+              const error = JSON.parse(errorText) as FlussonicError;
+              errorMessage = error.description || error.error || errorText;
+            } catch {
+              errorMessage = errorText;
+            }
+          }
+        } catch (e) {
+          errorMessage = response.statusText;
         }
-        throw new Error(`Flussonic authentication failed: ${error.description || error.error}`);
+
+        if (response.status === 404) {
+          throw new Error(`Flussonic API not found at ${server.url}. Please check the server URL.`);
+        } else if (response.status === 401) {
+          throw new Error('Invalid username or password');
+        }
+        throw new Error(`Flussonic authentication failed: ${errorMessage}`);
       }
 
-      const { token, expires } = await response.json() as AuthResponse;
+      let responseData: AuthResponse;
+      try {
+        responseData = await response.json();
+      } catch (e) {
+        throw new Error('Invalid response from Flussonic server');
+      }
+
+      const { token, expires } = responseData;
       
       // Store the token with expiration (convert to milliseconds)
       const expirationTime = Date.now() + (expires * 1000);
@@ -91,41 +110,54 @@ export class FlussonicService {
         
         console.log(`Making request to Flussonic API: ${fullUrl}`);
         
-        const response = await fetch(fullUrl, {
+        const response = await fetch(`${server.url}/flussonic${endpoint}`, {
           ...options,
           headers: {
             ...options.headers,
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Basic ${Buffer.from(`${server.username}:${server.password}`).toString('base64')}`,
             'Accept': 'application/json',
-            'Content-Type': 'application/json',
           },
         });
 
         if (!response.ok) {
-          const errorText = await response.text();
-          let errorMessage: string;
-          
+          let errorMessage = `HTTP ${response.status}`;
           try {
-            const errorJson = JSON.parse(errorText) as FlussonicError;
-            errorMessage = errorJson.description || errorJson.error;
-          } catch {
-            errorMessage = errorText;
+            const errorText = await response.text();
+            if (errorText) {
+              try {
+                const error = JSON.parse(errorText) as FlussonicError;
+                errorMessage = error.description || error.error || errorText;
+              } catch {
+                errorMessage = errorText;
+              }
+            }
+          } catch (e) {
+            errorMessage = response.statusText;
           }
 
-          if (response.status === 401) {
+          if (response.status === 404) {
+            throw new Error(`API endpoint not found: ${endpoint}`);
+          } else if (response.status === 401) {
             if (attempt < maxRetries - 1) {
-              // Token expired, clear it and retry
-              console.log('Token expired, attempting to refresh...');
-              this.authTokens.delete(server.id);
+              // Auth failed, retry
+              console.log('Authentication failed, retrying...');
               attempt++;
               continue;
             }
+            throw new Error('Authentication failed');
           }
           
           throw new Error(`Flussonic API error (${response.status}): ${errorMessage}`);
         }
 
-        return response.json();
+        let responseData: T;
+        try {
+          responseData = await response.json();
+        } catch (e) {
+          throw new Error('Invalid JSON response from Flussonic server');
+        }
+
+        return responseData;
       } catch (error) {
         if (attempt === maxRetries - 1) {
           console.error(`Failed to make authenticated request to ${endpoint} after ${maxRetries} attempts:`, error);
