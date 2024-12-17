@@ -307,6 +307,12 @@ export function registerRoutes(app: Express): Server {
               streamStatus: activeStream
             })
             .where(eq(streams.id, existingStream.id));
+          
+          // Update traffic stats for the stream
+          await updateTrafficStats({
+            ...existingStream,
+            streamStatus: activeStream
+          });
         }
       }
 
@@ -518,17 +524,26 @@ export function registerRoutes(app: Express): Server {
 
   // Update traffic stats (called periodically by the server)
   async function updateTrafficStats(stream: typeof streams.$inferSelect) {
-    if (!stream.streamStatus?.stats) return;
+    if (!stream.streamStatus?.stats) {
+      console.log(`No stats available for stream ${stream.id}`);
+      return;
+    }
     
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
     
     try {
+      console.log('Stream status:', JSON.stringify(stream.streamStatus.stats, null, 2));
+      
       // Convert bytes to numbers, ensuring we don't exceed MAX_SAFE_INTEGER
       const bytesIn = Math.min(Number(stream.streamStatus.stats.bytes_in), Number.MAX_SAFE_INTEGER);
       const bytesOut = Math.min(Number(stream.streamStatus.stats.bytes_out), Number.MAX_SAFE_INTEGER);
       
+      console.log(`Processing traffic for stream ${stream.id} - Year: ${year}, Month: ${month}`);
+      console.log(`Bytes - In: ${bytesIn}, Out: ${bytesOut}`);
+      
+      // First try to get existing stat
       const [existingStat] = await db
         .select()
         .from(trafficStats)
@@ -540,30 +555,36 @@ export function registerRoutes(app: Express): Server {
         .limit(1);
       
       if (existingStat) {
+        // Update existing stat with new bytes
         await db
           .update(trafficStats)
           .set({
-            bytesIn,
-            bytesOut,
+            bytesIn: bytesIn,
+            bytesOut: bytesOut,
             lastUpdated: now,
           })
           .where(eq(trafficStats.id, existingStat.id));
+        
+        console.log(`Updated existing traffic stats for stream ${stream.id}`);
       } else {
-        await db
+        // Create new stat entry
+        const [newStat] = await db
           .insert(trafficStats)
           .values({
             streamId: stream.id,
             year,
             month,
-            bytesIn,
-            bytesOut,
+            bytesIn: bytesIn,
+            bytesOut: bytesOut,
             lastUpdated: now,
-          });
+          })
+          .returning();
+        
+        console.log(`Created new traffic stats for stream ${stream.id}:`, newStat);
       }
-      
-      console.log(`Updated traffic stats for stream ${stream.id} - In: ${bytesIn}, Out: ${bytesOut}`);
     } catch (error) {
       console.error('Error updating traffic stats:', error);
+      console.error(error);
     }
   }
 
