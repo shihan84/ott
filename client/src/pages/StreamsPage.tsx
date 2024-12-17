@@ -10,19 +10,21 @@ import type { StreamWithStats } from '@/types';
 import { api } from '@/lib/api';
 
 function formatBitrate(bitrate: number): string {
-  if (bitrate >= 1000000) {
-    return `${(bitrate / 1000000).toFixed(2)} Mbps`;
-  } else if (bitrate >= 1000) {
-    return `${(bitrate / 1000).toFixed(2)} Kbps`;
-  }
-  return `${bitrate} bps`;
+  // Always show in Mbps
+  return `${(bitrate / 1000000).toFixed(2)} Mbps`;
 }
 
 function formatUptime(timestamp: number): string {
   if (!timestamp) return 'Unknown';
   const now = Date.now();
   const startTime = timestamp * 1000; // Convert to milliseconds
-  return formatDistance(startTime, now, { addSuffix: false });
+  const diffMs = now - startTime;
+  
+  // Convert to hours and minutes
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 }
 
 export default function StreamsPage() {
