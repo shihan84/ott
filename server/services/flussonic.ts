@@ -22,8 +22,8 @@ export class FlussonicService {
     }
 
     try {
-      // Flussonic uses Basic Auth with API key as username and empty password
-      const basicAuth = Buffer.from(`${server.apiKey}:`).toString('base64');
+      // Flussonic uses Basic Auth with username and password
+      const basicAuth = Buffer.from(`${server.username}:${server.password}`).toString('base64');
       
       const response = await fetch(`${server.url}/flussonic/api/v3/auth`, {
         method: 'POST',

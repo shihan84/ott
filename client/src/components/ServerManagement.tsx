@@ -27,7 +27,8 @@ const serverSchema = z.object({
       return false;
     }
   }, "Must be an HTTP/HTTPS URL"),
-  apiKey: z.string().min(1, "API key is required"),
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
 });
 
 export default function ServerManagement() {
@@ -45,7 +46,8 @@ export default function ServerManagement() {
     defaultValues: {
       name: '',
       url: '',
-      apiKey: '',
+      username: '',
+      password: '',
     },
   });
 
@@ -152,15 +154,30 @@ export default function ServerManagement() {
                 />
                 <FormField
                   control={form.control}
-                  name="apiKey"
+                  name="username"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>API Key</FormLabel>
+                      <FormLabel>Username</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Your Flussonic server username
+                      </FormDescription>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
                       <FormControl>
                         <Input {...field} type="password" />
                       </FormControl>
                       <FormDescription>
-                        Your Flussonic API key for authentication
+                        Your Flussonic server password
                       </FormDescription>
                     </FormItem>
                   )}
