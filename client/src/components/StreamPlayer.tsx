@@ -16,7 +16,7 @@ interface StreamPlayerProps {
   }>;
 }
 
-export default function StreamPlayer({ url, title }: StreamPlayerProps) {
+export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerProps) {
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);

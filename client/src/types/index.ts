@@ -1,7 +1,7 @@
 import type { Stream, Server, User, Permission } from "@db/schema";
 
 // Matches Flussonic API spec from OpenAPI docs
-interface MediaTrack {
+export interface MediaTrack {
   content: string;
   codec: string;
   bitrate?: number;
@@ -39,6 +39,9 @@ export interface StreamStats {
 
 export interface StreamWithStats extends Stream {
   streamStatus: StreamStats | null;
+  server?: {
+    url: string;
+  };
 }
 
 export interface UserWithPermissions extends User {
