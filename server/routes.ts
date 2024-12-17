@@ -4,9 +4,10 @@ import { setupAuth } from "./auth";
 import { setupWebSocket } from "./websocket";
 import { db } from "@db";
 import { users, servers, streams, permissions, type User } from "@db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 import type { FlussonicStreamsResponse } from "./flussonic";
 import { flussonicService, StreamStatisticsService } from "./services/flussonic";
+import { crypto } from "./auth";
 
 // Extend Express Request type to include our User type
 declare global {
@@ -51,15 +52,81 @@ export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
   // User routes
-  app.get("/api/users", requireAdmin, async (req, res) => {
-    const allUsers = await db.select().from(users);
-    res.json(allUsers);
+  app.get("/api/users", requireAdmin, async (_req, res) => {
+    try {
+      const allUsers = await db.select().from(users);
+      res.json(allUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).send("Failed to fetch users");
+    }
   });
 
   app.post("/api/users", requireAdmin, async (req, res) => {
-    const { username, password, isAdmin } = req.body;
-    const newUser = await db.insert(users).values({ username, password, isAdmin }).returning();
-    res.json(newUser[0]);
+    try {
+      const { username, password, isAdmin } = req.body;
+      
+      // Check if user already exists
+      const existingUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
+
+      if (existingUser.length > 0) {
+        return res.status(400).send("Username already exists");
+      }
+
+      // Hash password
+      const hashedPassword = await crypto.hash(password);
+
+      // Create new user
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          username,
+          password: hashedPassword,
+          isAdmin: isAdmin || false,
+        })
+        .returning();
+
+      res.json(newUser);
+    } catch (error) {
+      console.error('Error creating user:', error);
+      res.status(500).send("Failed to create user");
+    }
+  });
+
+  app.delete("/api/users/:id", requireAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      // Prevent deletion of the last admin user
+      if (req.user?.isAdmin) {
+        const adminCount = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(users)
+          .where(eq(users.isAdmin, true));
+        
+        if (adminCount[0].count <= 1) {
+          return res.status(400).send("Cannot delete the last admin user");
+        }
+      }
+
+      const [deletedUser] = await db
+        .delete(users)
+        .where(eq(users.id, userId))
+        .returning();
+
+      if (!deletedUser) {
+        return res.status(404).send("User not found");
+      }
+
+      res.json(deletedUser);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      res.status(500).send("Failed to delete user");
+    }
   });
 
   // Server routes

@@ -35,9 +35,14 @@ const serverSchema = z.object({
 
 export default function ServerManagement() {
   const [isOpen, setIsOpen] = useState(false);
+  const { user } = useUser();
+  
   return (
     <TooltipProvider>
-      <ServerManagementContent isOpen={isOpen} setIsOpen={setIsOpen} />
+      <div className="space-y-6">
+        <ServerManagementContent isOpen={isOpen} setIsOpen={setIsOpen} />
+        {user?.isAdmin && <UserManagement />}
+      </div>
     </TooltipProvider>
   );
 }

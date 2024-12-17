@@ -37,4 +37,11 @@ export const api = {
   // Stream management
   getServerStreams: (serverId: number) => 
     fetchApi<StreamWithStats[]>(`/servers/${serverId}/streams`),
+    
+  // User management
+  getUsers: () => fetchApi<User[]>('/users'),
+  createUser: (data: { username: string; password: string; isAdmin: boolean }) =>
+    fetchApi<User>('/users', { method: 'POST', body: JSON.stringify(data) }),
+  deleteUser: (id: number) =>
+    fetchApi<void>(`/users/${id}`, { method: 'DELETE' }),
 };
