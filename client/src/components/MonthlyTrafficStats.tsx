@@ -34,7 +34,8 @@ export default function MonthlyTrafficStats({ streamId }: MonthlyTrafficStatsPro
         month: 'long', 
         year: 'numeric' 
       }),
-      totalBytes: Number(stat.bytesIn) + Number(stat.bytesOut),
+      bytesIn: Number(stat.bytesIn),
+      bytesOut: Number(stat.bytesOut),
       lastUpdated: new Date(stat.lastUpdated).toLocaleString(),
     }));
   }, [stats]);
@@ -61,7 +62,9 @@ export default function MonthlyTrafficStats({ streamId }: MonthlyTrafficStatsPro
         <TableHeader>
           <TableRow>
             <TableHead>Month</TableHead>
-            <TableHead>Total Data Transfer</TableHead>
+            <TableHead>Input Traffic</TableHead>
+            <TableHead>Output Traffic</TableHead>
+            <TableHead>Total Transfer</TableHead>
             <TableHead>Last Updated</TableHead>
           </TableRow>
         </TableHeader>
@@ -76,7 +79,9 @@ export default function MonthlyTrafficStats({ streamId }: MonthlyTrafficStatsPro
             tableData.map((row, index) => (
               <TableRow key={index}>
                 <TableCell>{row.month}</TableCell>
-                <TableCell>{formatBytes(row.totalBytes)}</TableCell>
+                <TableCell>{formatBytes(Number(stat.bytesIn))}</TableCell>
+                <TableCell>{formatBytes(Number(stat.bytesOut))}</TableCell>
+                <TableCell>{formatBytes(Number(stat.bytesIn) + Number(stat.bytesOut))}</TableCell>
                 <TableCell className="text-muted-foreground">{row.lastUpdated}</TableCell>
               </TableRow>
             ))
