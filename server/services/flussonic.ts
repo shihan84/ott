@@ -27,7 +27,7 @@ export class FlussonicService {
       const basicAuth = Buffer.from(`${server.username}:${server.password}`).toString('base64');
       
       // Ensure URL is properly formatted and handle SSL
-      const apiUrl = new URL('/flussonic/api/sessions', server.url).toString();
+      const apiUrl = new URL('/flussonic/api/v3/sessions', server.url).toString();
       console.log(`Attempting to authenticate with Flussonic server at: ${apiUrl}`);
       
       const response = await fetch(apiUrl, {
@@ -120,7 +120,7 @@ export class FlussonicService {
         console.log(`Making request to Flussonic API: ${fullUrl}`);
         
         // Ensure URL is properly formatted and handle SSL
-        const apiUrl = new URL(`/flussonic${endpoint}`, server.url).toString();
+        const apiUrl = new URL(`/flussonic/api${endpoint}`, server.url).toString();
         console.log(`Making request to Flussonic API: ${apiUrl}`);
         
         const response = await fetch(apiUrl, {
