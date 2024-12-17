@@ -26,8 +26,9 @@ export class FlussonicService {
       // Flussonic uses Basic Auth with username and password
       const basicAuth = Buffer.from(`${server.username}:${server.password}`).toString('base64');
       
-      // Ensure URL is properly formatted and handle SSL
-      const apiUrl = new URL('/api/v3/sessions', server.url).toString();
+      // Parse and validate the server URL
+      const serverUrl = new URL(server.url);
+      const apiUrl = new URL('/api/sessions', serverUrl).toString();
       console.log(`Attempting to authenticate with Flussonic server at: ${apiUrl}`);
       
       const response = await fetch(apiUrl, {
@@ -37,7 +38,7 @@ export class FlussonicService {
           'Accept': 'application/json',
         },
         // Allow self-signed certificates in development
-        agent: process.env.NODE_ENV === 'development' ? 
+        agent: process.env.NODE_ENV === 'development' && serverUrl.protocol === 'https:' ? 
           new (await import('node:https')).Agent({
             rejectUnauthorized: false
           }) : undefined
@@ -114,13 +115,13 @@ export class FlussonicService {
 
     while (attempt < maxRetries) {
       try {
-        const token = await this.authenticate(server);
-        const fullUrl = `${server.url}/flussonic/api/v3${endpoint}`;
+        // Parse and validate the server URL
+        const serverUrl = new URL(server.url);
         
-        console.log(`Making request to Flussonic API: ${fullUrl}`);
+        // Construct the API URL - use the base URL and append the API path
+        const apiPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+        const apiUrl = new URL(`/api${apiPath}`, serverUrl).toString();
         
-        // Ensure URL is properly formatted and handle SSL
-        const apiUrl = new URL(`/api${endpoint}`, server.url).toString();
         console.log(`Making request to Flussonic API: ${apiUrl}`);
         
         const response = await fetch(apiUrl, {
@@ -130,8 +131,8 @@ export class FlussonicService {
             'Authorization': `Basic ${Buffer.from(`${server.username}:${server.password}`).toString('base64')}`,
             'Accept': 'application/json',
           },
-          // Allow self-signed certificates in development
-          agent: process.env.NODE_ENV === 'development' ? 
+          // Allow self-signed certificates in development only for HTTPS
+          agent: process.env.NODE_ENV === 'development' && serverUrl.protocol === 'https:' ? 
             new (await import('node:https')).Agent({
               rejectUnauthorized: false
             }) : undefined
