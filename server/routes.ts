@@ -415,15 +415,28 @@ export function registerRoutes(app: Express): Server {
       const startDate = new Date(now.getFullYear(), now.getMonth() - monthsToShow + 1, 1);
       
       const stats = await db
-        .select()
+        .select({
+          year: trafficStats.year,
+          month: trafficStats.month,
+          bytesIn: trafficStats.bytesIn,
+          bytesOut: trafficStats.bytesOut,
+          lastUpdated: trafficStats.lastUpdated,
+        })
         .from(trafficStats)
         .where(and(
           eq(trafficStats.streamId, streamId),
           sql`(${trafficStats.year} * 100 + ${trafficStats.month}) >= ${startDate.getFullYear() * 100 + startDate.getMonth() + 1}`
         ))
         .orderBy(sql`${trafficStats.year} * 100 + ${trafficStats.month}`);
+
+      // Convert BigInt to Number for JSON serialization
+      const formattedStats = stats.map(stat => ({
+        ...stat,
+        bytesIn: Number(stat.bytesIn),
+        bytesOut: Number(stat.bytesOut),
+      }));
       
-      res.json(stats);
+      res.json(formattedStats);
     } catch (error) {
       console.error('Error fetching traffic stats:', error);
       res.status(500).send("Failed to fetch traffic stats");
