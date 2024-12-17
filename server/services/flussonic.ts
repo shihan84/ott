@@ -14,30 +14,20 @@ interface FlussonicError {
 }
 
 export class FlussonicService {
-  private authTokens: Map<number, { token: string; expires: number }> = new Map();
-
-  async authenticate(server: typeof servers.$inferSelect): Promise<string> {
-    const cachedAuth = this.authTokens.get(server.id);
-    if (cachedAuth && cachedAuth.expires > Date.now()) {
-      return cachedAuth.token;
-    }
-
+  async validateAuth(server: typeof servers.$inferSelect): Promise<boolean> {
     try {
-      // Flussonic uses Basic Auth with username and password
-      const basicAuth = Buffer.from(`${server.username}:${server.password}`).toString('base64');
-      
-      // Parse and validate the server URL
+      // Test authentication using the streams endpoint
       const serverUrl = new URL(server.url);
-      const apiUrl = new URL('/streamer/api/v3/sessions', serverUrl).toString();
-      console.log(`Attempting to authenticate with Flussonic server at: ${apiUrl}`);
+      const apiUrl = new URL('/streamer/api/v3/streams', serverUrl).toString();
       
+      console.log(`Testing authentication with Flussonic server at: ${apiUrl}`);
+      
+      const basicAuth = Buffer.from(`${server.username}:${server.password}`).toString('base64');
       const response = await fetch(apiUrl, {
-        method: 'POST',
         headers: {
           'Authorization': `Basic ${basicAuth}`,
           'Accept': 'application/json',
         },
-        // Allow self-signed certificates in development
         agent: process.env.NODE_ENV === 'development' && serverUrl.protocol === 'https:' ? 
           new (await import('node:https')).Agent({
             rejectUnauthorized: false
@@ -68,41 +58,18 @@ export class FlussonicService {
         throw new Error(`Flussonic authentication failed: ${errorMessage}`);
       }
 
-      let responseData: AuthResponse;
-      try {
-        responseData = await response.json();
-      } catch (e) {
-        throw new Error('Invalid response from Flussonic server');
-      }
-
-      const { token, expires } = responseData;
-      
-      // Store the token with expiration (convert to milliseconds)
-      const expirationTime = Date.now() + (expires * 1000);
-      this.authTokens.set(server.id, {
-        token,
-        expires: expirationTime,
-      });
-
-      // Log successful authentication
-      console.log(`Successfully authenticated with Flussonic server ${server.name}, token expires in ${expires} seconds`);
-
-      return token;
+      return true;
     } catch (error) {
       console.error(`Failed to authenticate with Flussonic server ${server.name}:`, error);
-      // Update server status in database to reflect authentication failure
       await db
         .update(servers)
-        .set({ lastError: error.message })
+        .set({ 
+          lastError: error.message,
+          lastErrorAt: new Date(),
+        })
         .where(eq(servers.id, server.id));
       throw error;
     }
-  }
-
-  async validateToken(serverId: number): Promise<boolean> {
-    const auth = this.authTokens.get(serverId);
-    if (!auth) return false;
-    return auth.expires > Date.now();
   }
 
   async makeAuthenticatedRequest<T>(
@@ -110,91 +77,69 @@ export class FlussonicService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const maxRetries = 2;
-    let attempt = 0;
+    try {
+      // Parse and validate the server URL
+      const serverUrl = new URL(server.url);
+      
+      // Construct the API URL - use the base URL and append the API path
+      const apiPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+      const apiUrl = new URL(`/streamer/api/v3${apiPath}`, serverUrl).toString();
+      
+      console.log(`Making request to Flussonic API: ${apiUrl}`);
+      
+      const basicAuth = Buffer.from(`${server.username}:${server.password}`).toString('base64');
+      const response = await fetch(apiUrl, {
+        ...options,
+        headers: {
+          ...options.headers,
+          'Authorization': `Basic ${basicAuth}`,
+          'Accept': 'application/json',
+        },
+        // Allow self-signed certificates in development only for HTTPS
+        agent: process.env.NODE_ENV === 'development' && serverUrl.protocol === 'https:' ? 
+          new (await import('node:https')).Agent({
+            rejectUnauthorized: false
+          }) : undefined
+      });
 
-    while (attempt < maxRetries) {
-      try {
-        // Parse and validate the server URL
-        const serverUrl = new URL(server.url);
-        
-        // Construct the API URL - use the base URL and append the API path
-        const apiPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-        const apiUrl = new URL(`/streamer/api/v3${apiPath}`, serverUrl).toString();
-        
-        console.log(`Making request to Flussonic API: ${apiUrl}`);
-        
-        const response = await fetch(apiUrl, {
-          ...options,
-          headers: {
-            ...options.headers,
-            'Authorization': `Basic ${Buffer.from(`${server.username}:${server.password}`).toString('base64')}`,
-            'Accept': 'application/json',
-          },
-          // Allow self-signed certificates in development only for HTTPS
-          agent: process.env.NODE_ENV === 'development' && serverUrl.protocol === 'https:' ? 
-            new (await import('node:https')).Agent({
-              rejectUnauthorized: false
-            }) : undefined
-        });
-
-        if (!response.ok) {
-          let errorMessage = `HTTP ${response.status}`;
-          try {
-            const errorText = await response.text();
-            if (errorText) {
-              try {
-                const error = JSON.parse(errorText) as FlussonicError;
-                errorMessage = error.description || error.error || errorText;
-              } catch {
-                errorMessage = errorText;
-              }
-            }
-          } catch (e) {
-            errorMessage = response.statusText;
-          }
-
-          if (response.status === 404) {
-            throw new Error(`API endpoint not found: ${endpoint}`);
-          } else if (response.status === 401) {
-            if (attempt < maxRetries - 1) {
-              // Auth failed, retry
-              console.log('Authentication failed, retrying...');
-              attempt++;
-              continue;
-            }
-            throw new Error('Authentication failed');
-          }
-          
-          throw new Error(`Flussonic API error (${response.status}): ${errorMessage}`);
-        }
-
-        let responseData: T;
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}`;
         try {
-          responseData = await response.json();
+          const errorText = await response.text();
+          if (errorText) {
+            try {
+              const error = JSON.parse(errorText) as FlussonicError;
+              errorMessage = error.description || error.error || errorText;
+            } catch {
+              errorMessage = errorText;
+            }
+          }
         } catch (e) {
-          throw new Error('Invalid JSON response from Flussonic server');
+          errorMessage = response.statusText;
         }
 
-        return responseData;
-      } catch (error) {
-        if (attempt === maxRetries - 1) {
-          console.error(`Failed to make authenticated request to ${endpoint} after ${maxRetries} attempts:`, error);
-          // Update server status
-          await db
-            .update(servers)
-            .set({ 
-              lastError: error.message,
-              lastErrorAt: new Date(),
-            })
-            .where(eq(servers.id, server.id));
-          throw error;
+        if (response.status === 404) {
+          throw new Error(`API endpoint not found: ${endpoint}`);
+        } else if (response.status === 401) {
+          throw new Error('Invalid username or password');
         }
-        attempt++;
+        
+        throw new Error(`Flussonic API error (${response.status}): ${errorMessage}`);
       }
-    }
 
-    throw new Error('Maximum retry attempts reached');
+      return response.json();
+    } catch (error) {
+      console.error(`Failed to make request to ${endpoint}:`, error);
+      // Update server status
+      await db
+        .update(servers)
+        .set({ 
+          lastError: error.message,
+          lastErrorAt: new Date(),
+        })
+        .where(eq(servers.id, server.id));
+      throw error;
+    }
   }
 }
 

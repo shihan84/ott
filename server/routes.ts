@@ -51,7 +51,7 @@ export function registerRoutes(app: Express): Server {
         allServers.map(async (server) => {
           try {
             // Validate server authentication and fetch stats
-            await flussonicService.validateToken(server.id);
+            await flussonicService.validateAuth(server);
             const systemStats = await flussonicService.makeAuthenticatedRequest(server, '/status');
             const streamsStats = await flussonicService.makeAuthenticatedRequest(server, '/streams');
             
