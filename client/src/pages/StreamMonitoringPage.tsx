@@ -1,4 +1,5 @@
 import { useParams } from 'wouter';
+import { useUser } from '@/hooks/use-user';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,29 +50,24 @@ function formatBytes(bytes: number | undefined): string {
 export default function StreamMonitoringPage() {
   const [, setLocation] = useLocation();
   const { serverId, streamId } = useParams();
+  const { user } = useUser();
   
-  const { data: servers } = useQuery({
-    queryKey: ['/api/servers'],
-    queryFn: api.getServers,
-  });
-
   const { data: stream, isLoading } = useQuery<StreamWithStats>({
-    queryKey: ['/api/servers', serverId, 'streams', streamId],
+    queryKey: ['/api/streams', streamId],
     queryFn: async () => {
-      const streams = await api.getServerStreams(parseInt(serverId!));
-      const stream = streams.find(s => s.id === parseInt(streamId!));
-      if (!stream) throw new Error('Stream not found');
-      
-      // Attach server URL to the stream
-      const server = servers?.find(s => s.id === parseInt(serverId!));
-      if (server) {
-        stream.server = { url: server.url };
+      if (user?.isAdmin && serverId) {
+        const streams = await api.getServerStreams(parseInt(serverId));
+        const stream = streams.find(s => s.id === parseInt(streamId!));
+        if (!stream) throw new Error('Stream not found');
+        return stream;
+      } else {
+        const streams = await api.getPermittedStreams();
+        const stream = streams.find(s => s.id === parseInt(streamId!));
+        if (!stream) throw new Error('Stream not found');
+        return stream;
       }
-      
-      return stream;
     },
     refetchInterval: 5000, // Refresh every 5 seconds
-    enabled: !!servers,
   });
 
   if (isLoading) {
@@ -126,7 +122,10 @@ export default function StreamMonitoringPage() {
               Stream Details and Monitoring
             </p>
           </div>
-          <Button variant="outline" onClick={() => setLocation(`/servers/${serverId}/streams`)}>
+          <Button 
+            variant="outline" 
+            onClick={() => setLocation(user?.isAdmin ? `/servers/${serverId}/streams` : '/')}
+          >
             <ChevronLeft className="w-4 h-4 mr-2" />
             Back to Streams
           </Button>
