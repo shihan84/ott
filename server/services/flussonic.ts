@@ -119,7 +119,7 @@ export class FlussonicService {
     }
   }
 
-  async makeAuthenticatedRequest<T extends FlussonicSystemStats | FlussonicStreamsResponse>(
+  async makeAuthenticatedRequest<T>(
     server: typeof servers.$inferSelect,
     endpoint: string,
     options: RequestInit = {}

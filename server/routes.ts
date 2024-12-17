@@ -1,25 +1,49 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { setupWebSocket } from "./websocket";
 import { db } from "@db";
-import { users, servers, streams, permissions } from "@db/schema";
+import { users, servers, streams, permissions, type User } from "@db/schema";
 import { eq, and } from "drizzle-orm";
 import { setupFlussonicIntegration } from "./flussonic";
 import { flussonicService } from "./services/flussonic";
 
-function requireAuth(req: Express.Request, res: Express.Response, next: Function) {
+// Extend Express Request type to include our User type
+declare global {
+  namespace Express {
+    interface User extends User {}
+  }
+}
+
+interface AuthenticatedRequest extends Request {
+  user: User;
+}
+
+function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!req.isAuthenticated()) {
     return res.status(401).send("Unauthorized");
   }
   next();
 }
 
-function requireAdmin(req: Express.Request, res: Express.Response, next: Function) {
-  if (!req.isAuthenticated() || !req.user.isAdmin) {
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).send("Unauthorized");
+  }
+  
+  const user = req.user as User;
+  if (!user.isAdmin) {
     return res.status(403).send("Forbidden");
   }
+  
   next();
+}
+
+// Helper to ensure request is authenticated
+function ensureAuthenticated(req: Request): asserts req is AuthenticatedRequest {
+  if (!req.isAuthenticated() || !req.user) {
+    throw new Error("User is not authenticated");
+  }
 }
 
 export function registerRoutes(app: Express): Server {
@@ -52,7 +76,7 @@ export function registerRoutes(app: Express): Server {
           try {
             // Only fetch streams stats since system stats may not be available
             await flussonicService.validateAuth(server);
-            const streamsStats = await flussonicService.makeAuthenticatedRequest(server, '/streams');
+            const streamsStats = await flussonicService.makeAuthenticatedRequest<FlussonicStreamsResponse>(server, '/streams');
             
             // Calculate health metrics from streams data
             const activeStreams = streamsStats.streams.length;
@@ -172,6 +196,8 @@ export function registerRoutes(app: Express): Server {
 
   // Stream routes
   app.get("/api/streams", requireAuth, async (req, res) => {
+    ensureAuthenticated(req);
+    
     if (req.user.isAdmin) {
       const allStreams = await db.select().from(streams);
       return res.json(allStreams);

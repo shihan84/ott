@@ -69,34 +69,27 @@ export async function setupFlussonicIntegration() {
   }, 30000);
 }
 
-async function fetchServerStats(server: typeof servers.$inferSelect) {
+async function fetchServerStats(server: typeof servers.$inferSelect): Promise<FlussonicStreamStats[]> {
   try {
-    const [streamsData, systemData] = await Promise.all([
-      flussonicService.makeAuthenticatedRequest(server, '/streams'),
-      flussonicService.makeAuthenticatedRequest(server, '/system_stat'),
-    ]);
+    const streamsData = await flussonicService.makeAuthenticatedRequest<FlussonicStreamsResponse>(
+      server,
+      '/streams'
+    );
 
     // Map Flussonic API response to our expected format
-    return {
-      streams: streamsData.streams.map((stream: any) => ({
-        name: stream.name,
-        input: {
-          connected: stream.alive,
-          bitrate: stream.input?.bitrate || 0,
-        },
-        clients: stream.clients || 0,
-        bandwidth_in: stream.input?.bytes_in || 0,
-        uptime: stream.input?.time || 0,
-      })),
-      system: {
-        cpu_usage: systemData.cpu.total,
-        memory_usage: (systemData.memory.used / systemData.memory.total) * 100,
-        uptime: systemData.uptime,
+    return streamsData.streams.map(stream => ({
+      name: stream.name,
+      input: {
+        connected: stream.alive,
+        bitrate: stream.input?.bitrate || 0,
       },
-    };
+      clients: stream.clients || 0,
+      bandwidth_in: stream.input?.bytes_in || 0,
+      uptime: stream.input?.time || 0,
+    }));
   } catch (error) {
     console.error(`Error fetching stats from server ${server.name}:`, error);
-    return { streams: [], system: { cpu_usage: 0, memory_usage: 0, uptime: 0 } };
+    return [];
   }
 }
 
