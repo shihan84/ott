@@ -33,14 +33,27 @@ export default function StreamsPage() {
   const [, setLocation] = useLocation();
   const { serverId } = useParams();
   
-  const { data: streams, isLoading } = useQuery<StreamWithStats[]>({
+  const { data: streams, isLoading, error } = useQuery<StreamWithStats[]>({
     queryKey: ['/api/servers', serverId, 'streams'],
     queryFn: async () => {
+      console.log('Fetching streams for server:', serverId);
       const response = await api.getServerStreams(parseInt(serverId!));
-      return response;
+      console.log('Server streams response:', response);
+      // Ensure server URL is present in each stream
+      return response.map(stream => ({
+        ...stream,
+        server: {
+          url: stream.server?.url || '',
+        }
+      }));
     },
     enabled: !!serverId,
+    refetchInterval: 10000, // Refetch every 10 seconds for live status
   });
+
+  if (error) {
+    console.error('Error fetching streams:', error);
+  }
 
   if (isLoading) {
     return (

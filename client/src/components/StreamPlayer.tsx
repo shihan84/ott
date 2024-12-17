@@ -164,33 +164,49 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
           config={{
             file: {
               forceHLS: true,
+              hlsVersion: '1.4.12', // Specify HLS.js version
               hlsOptions: {
                 enableWorker: true,
-                debug: process.env.NODE_ENV !== 'production',
-                xhrSetup: function(xhr: XMLHttpRequest) {
+                debug: true, // Enable debug logs to see what's happening
+                xhrSetup: function(xhr: XMLHttpRequest, url: string) {
                   xhr.withCredentials = false;
+                  console.log('HLS.js making request to:', url);
                 },
-                // Increased timeouts for better stability
-                manifestLoadingTimeOut: 30000,
-                manifestLoadingMaxRetry: 5,
-                levelLoadingTimeOut: 30000,
-                levelLoadingMaxRetry: 5,
-                fragLoadingTimeOut: 30000,
-                fragLoadingMaxRetry: 5,
-                // Auto quality selection
-                startLevel: -1,
-                autoStartLoad: true,
-                // Live stream specific options
+                // More aggressive retry strategy
+                manifestLoadingTimeOut: 10000, // Reduced timeout for faster feedback
+                manifestLoadingMaxRetry: 6,
+                manifestLoadingRetryDelay: 1000, // 1 second between retries
+                levelLoadingTimeOut: 10000,
+                levelLoadingMaxRetry: 6,
+                levelLoadingRetryDelay: 1000,
+                fragLoadingTimeOut: 20000,
+                fragLoadingMaxRetry: 6,
+                fragLoadingRetryDelay: 1000,
+                // Optimize for live streaming
+                liveSyncDurationCount: 3,
+                liveMaxLatencyDurationCount: 10,
                 liveDurationInfinity: true,
                 liveBackBufferLength: 30,
-                // Enable low latency mode
+                // Enable low latency mode with appropriate settings
                 lowLatencyMode: true,
-                // Disable subtitle/caption processing
+                // Recovery settings
+                testBandwidth: true,
+                progressive: true,
+                // Disable unnecessary features
                 enableWebVTT: false,
                 enableIMSC1: false,
                 enableCEA708Captions: false,
               },
             },
+          }}
+          onProgress={(state) => {
+            console.log('Player progress:', state);
+          }}
+          onBuffer={() => {
+            console.log('Player buffering...');
+          }}
+          onBufferEnd={() => {
+            console.log('Player buffering ended');
           }}
           onProgress={(state) => {
             console.log('Player progress:', state);
