@@ -10,9 +10,18 @@ interface MonthlyTrafficStatsProps {
 }
 
 export default function MonthlyTrafficStats({ streamId }: MonthlyTrafficStatsProps) {
-  const { data: stats, isLoading } = useQuery({
+  const { toast } = useToast();
+  const { data: stats, isLoading, error } = useQuery({
     queryKey: ['/api/streams', streamId, 'traffic'],
     queryFn: () => api.getStreamTraffic(streamId),
+    onError: (error) => {
+      console.error('Failed to load traffic stats:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load traffic statistics",
+        variant: "destructive",
+      });
+    }
   });
 
   const tableData = useMemo(() => {
@@ -46,13 +55,21 @@ export default function MonthlyTrafficStats({ streamId }: MonthlyTrafficStatsPro
           </TableRow>
         </TableHeader>
         <TableBody>
-          {tableData.map((row, index) => (
-            <TableRow key={index}>
-              <TableCell>{row.month}</TableCell>
-              <TableCell>{formatBytes(row.totalBytes)}</TableCell>
-              <TableCell className="text-muted-foreground">{row.lastUpdated}</TableCell>
+          {tableData.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={3} className="text-center text-muted-foreground py-4">
+                No traffic data available for this stream
+              </TableCell>
             </TableRow>
-          ))}
+          ) : (
+            tableData.map((row, index) => (
+              <TableRow key={index}>
+                <TableCell>{row.month}</TableCell>
+                <TableCell>{formatBytes(row.totalBytes)}</TableCell>
+                <TableCell className="text-muted-foreground">{row.lastUpdated}</TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     </div>

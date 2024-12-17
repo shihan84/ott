@@ -111,11 +111,13 @@ export default function StreamMonitoringPage() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <StreamPlayer 
-        url={streamUrl} 
-        title={stream.name}
-        videoTracks={videoTracks}
-      />
+      <div className="max-w-4xl mx-auto">
+        <StreamPlayer 
+          url={streamUrl} 
+          title={stream.name}
+          videoTracks={videoTracks}
+        />
+      </div>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
@@ -226,18 +228,7 @@ export default function StreamMonitoringPage() {
             <CardTitle>Traffic History</CardTitle>
           </CardHeader>
           <CardContent>
-            <MonthlyTrafficStats 
-              streamId={stream.id}
-              onError={(error) => {
-                console.error('Failed to load traffic stats:', error);
-                const { toast } = useToast();
-                toast({
-                  title: "Error",
-                  description: "Failed to load traffic statistics",
-                  variant: "destructive",
-                });
-              }}
-            />
+            <MonthlyTrafficStats streamId={stream.id} />
           </CardContent>
         </Card>
       )}
