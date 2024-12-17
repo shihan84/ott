@@ -483,44 +483,37 @@ export function registerRoutes(app: Express): Server {
 
   // Setup WebSocket server for real-time updates
   // Traffic stats routes
-  app.get("/api/streams/:streamId/traffic", requireAuth, async (req, res) => {
+  // Traffic stats endpoint removed for now
+  app.get("/api/streams/:streamId", requireAuth, async (req, res) => {
     try {
       const streamId = parseInt(req.params.streamId);
-      console.log('Fetching traffic stats for stream:', streamId);
+      // First check if user has access to this stream
+      const user = req.user as User;
       
-      // Get current month's stats
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth() + 1;
-      
-      const stats = await db
-        .select({
-          year: trafficStats.year,
-          month: trafficStats.month,
-          bytesIn: trafficStats.bytesIn,
-          bytesOut: trafficStats.bytesOut,
-          lastUpdated: trafficStats.lastUpdated,
-        })
-        .from(trafficStats)
-        .where(and(
-          eq(trafficStats.streamId, streamId),
-          eq(trafficStats.year, currentYear),
-          eq(trafficStats.month, currentMonth)
-        ))
-        .orderBy(trafficStats.lastUpdated, 'desc')
-        .limit(1);
+      const query = user.isAdmin
+        ? db
+            .select()
+            .from(streams)
+            .where(eq(streams.id, streamId))
+        : db
+            .select()
+            .from(streams)
+            .innerJoin(permissions, eq(permissions.streamId, streams.id))
+            .where(and(
+              eq(streams.id, streamId),
+              eq(permissions.userId, user.id)
+            ));
 
-      // Convert BigInt to Number for JSON serialization
-      const formattedStats = stats.map(stat => ({
-        ...stat,
-        bytesIn: Number(stat.bytesIn),
-        bytesOut: Number(stat.bytesOut),
-      }));
+      const [stream] = await query;
       
-      res.json(formattedStats);
+      if (!stream) {
+        return res.status(404).send("Stream not found");
+      }
+
+      res.json(stream);
     } catch (error) {
-      console.error('Error fetching traffic stats:', error);
-      res.status(500).send("Failed to fetch traffic stats");
+      console.error('Error fetching stream:', error);
+      res.status(500).send("Failed to fetch stream");
     }
   });
 

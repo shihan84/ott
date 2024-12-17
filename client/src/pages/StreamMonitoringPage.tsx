@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, Loader2 } from 'lucide-react';
-import MonthlyTrafficStats from '@/components/MonthlyTrafficStats';
+// Monthly traffic stats import removed for future update
 import { useLocation } from 'wouter';
 import { Activity, Users, Wifi, Clock } from 'lucide-react';
 import type { StreamWithStats, MediaTrack } from '@/types';
@@ -107,12 +107,14 @@ export default function StreamMonitoringPage() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div className="max-w-3xl mx-auto">
-        <StreamPlayer 
-          url={streamUrl} 
-          title={stream.name}
-          videoTracks={videoTracks}
-        />
+      <div className="flex justify-center mb-6">
+        <div className="w-[600px]">
+          <StreamPlayer 
+            url={streamUrl} 
+            title={stream.name}
+            videoTracks={videoTracks}
+          />
+        </div>
       </div>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -220,17 +222,7 @@ export default function StreamMonitoringPage() {
         </Card>
       </div>
 
-      {/* Monthly Traffic Stats */}
-      {stream && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Monthly Traffic Statistics</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MonthlyTrafficStats streamId={stream.id} />
-          </CardContent>
-        </Card>
-      )}
+      {/* Monthly Traffic Stats section removed for future update */}
     </div>
   );
 }

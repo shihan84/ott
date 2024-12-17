@@ -65,7 +65,7 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
       <CardHeader className="p-4">
         <CardTitle>{title || 'Live Stream'}</CardTitle>
       </CardHeader>
-      <CardContent className="p-0 relative aspect-video bg-black">
+      <CardContent className="p-0 relative h-[400px] bg-black">
         <div className={cn(
           'absolute inset-0 flex items-center justify-center',
           isReady ? 'opacity-0' : 'opacity-100'
