@@ -4,8 +4,33 @@ import { eq } from "drizzle-orm";
 import https from 'node:https';
 
 interface FlussonicError {
-  error: string;
-  description?: string;
+  id?: string;
+  status?: string;
+  code?: string;
+  title?: string;
+  source?: {
+    pointer?: string;
+    parameter?: string;
+  };
+  meta?: Record<string, string>;
+}
+
+// API types based on Flussonic Media Server OpenAPI spec
+interface FlussonicInputStream {
+  bitrate: number;
+  bytes_in: number;
+  time: number;
+}
+
+interface FlussonicStream {
+  name: string;
+  alive: boolean;
+  input?: FlussonicInputStream;
+  clients: number;
+}
+
+interface FlussonicStreamsResponse {
+  streams: FlussonicStream[];
 }
 
 interface FlussonicSystemStats {
@@ -20,21 +45,6 @@ interface FlussonicSystemStats {
     free: number;
   };
   uptime: number;
-}
-
-interface FlussonicStream {
-  name: string;
-  alive: boolean;
-  clients: number;
-  bytes_in?: number;
-  input?: {
-    bitrate?: number;
-    time?: number;
-  };
-}
-
-interface FlussonicStreamsResponse {
-  streams: FlussonicStream[];
 }
 
 export class FlussonicService {
@@ -78,7 +88,7 @@ export class FlussonicService {
           if (errorText) {
             try {
               const error = JSON.parse(errorText) as FlussonicError;
-              errorMessage = error.description || error.error || errorText;
+              errorMessage = error.title || errorText;
             } catch {
               errorMessage = errorText;
             }
@@ -142,7 +152,7 @@ export class FlussonicService {
           if (errorText) {
             try {
               const error = JSON.parse(errorText) as FlussonicError;
-              errorMessage = error.description || error.error || errorText;
+              errorMessage = error.title || errorText;
             } catch {
               errorMessage = errorText;
             }

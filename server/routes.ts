@@ -50,29 +50,22 @@ export function registerRoutes(app: Express): Server {
       const serversWithHealth = await Promise.all(
         allServers.map(async (server) => {
           try {
-            // Validate server authentication and fetch stats
+            // Only fetch streams stats since system stats may not be available
             await flussonicService.validateAuth(server);
-            const [systemStats, streamsStats] = await Promise.all([
-              flussonicService.makeAuthenticatedRequest(server, '/system_stat'),
-              flussonicService.makeAuthenticatedRequest(server, '/streams')
-            ]);
+            const streamsStats = await flussonicService.makeAuthenticatedRequest(server, '/streams');
             
-            // Calculate health metrics
-            const memoryUsage = systemStats.memory 
-              ? (systemStats.memory.used / systemStats.memory.total) * 100 
-              : 0;
-            
+            // Calculate health metrics from streams data
             const activeStreams = streamsStats.streams.length;
             const totalBandwidth = streamsStats.streams.reduce((sum, stream) => {
-              return sum + (stream.bytes_in || 0);
+              return sum + (stream.input?.bytes_in || 0);
             }, 0);
 
             return {
               ...server,
               health: {
                 status: 'online',
-                cpuUsage: systemStats.cpu.total,
-                memoryUsage,
+                cpuUsage: 0, // Not available from API
+                memoryUsage: 0, // Not available from API
                 activeStreams,
                 totalBandwidth,
                 lastChecked: new Date().toISOString(),
