@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -141,9 +141,12 @@ function ServerManagementContent({ isOpen, setIsOpen }: ServerManagementContentP
               Add Server
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent aria-describedby="add-server-description">
             <DialogHeader>
               <DialogTitle>Add New Media Server</DialogTitle>
+              <DialogDescription id="add-server-description">
+                Add a new Flussonic Media Server by providing its connection details.
+              </DialogDescription>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
