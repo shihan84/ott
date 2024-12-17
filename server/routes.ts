@@ -174,18 +174,30 @@ export function registerRoutes(app: Express): Server {
       }
       
       // Get active streams from Flussonic
-      const activeStreams = await StreamStatisticsService.getActiveStreams(serverData[0]);
-      
-      // Merge stream data with active status
-      const enrichedStreams = streamData.map(stream => {
-        const activeStream = activeStreams.find(as => as.name === stream.streamKey);
-        return {
+      try {
+        console.log('Fetching streams for server:', serverData[0].name);
+        const activeStreams = await StreamStatisticsService.getActiveStreams(serverData[0]);
+        
+        // Merge stream data with active status
+        const enrichedStreams = streamData.map(stream => {
+          const activeStream = activeStreams.find(as => as.name === stream.streamKey);
+          console.log('Stream:', stream.name, 'Active status:', !!activeStream);
+          return {
+            ...stream,
+            streamStatus: activeStream ? StreamStatisticsService.normalizeStreamStats(activeStream) : null
+          };
+        });
+        
+        res.json(enrichedStreams);
+      } catch (error) {
+        console.error('Error fetching streams from Flussonic:', error);
+        // Still return the basic stream data even if Flussonic fetch fails
+        const enrichedStreams = streamData.map(stream => ({
           ...stream,
-          streamStatus: activeStream ? StreamStatisticsService.normalizeStreamStats(activeStream) : null
-        };
-      });
-      
-      res.json(enrichedStreams);
+          streamStatus: null
+        }));
+        res.json(enrichedStreams);
+      }
     } catch (error) {
       console.error('Error fetching streams:', error);
       res.status(500).json({ error: 'Failed to fetch streams' });

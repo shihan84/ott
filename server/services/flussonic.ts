@@ -204,17 +204,42 @@ export const flussonicService = new FlussonicService();
 // Stream statistics tracking
 export class StreamStatisticsService {
   static async getServerStreams(server: typeof servers.$inferSelect): Promise<FlussonicStreamsResponse> {
-    return flussonicService.makeAuthenticatedRequest<FlussonicStreamsResponse>(
-      server,
-      '/streams',
-      { method: 'GET' }
-    );
+    console.log('Fetching streams from server:', server.name);
+    
+    try {
+      const response = await flussonicService.makeAuthenticatedRequest<FlussonicStreamsResponse>(
+        server,
+        '/streams',
+        { 
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          }
+        },
+        true // Enable schema validation
+      );
+      
+      console.log('Received streams response:', response);
+      return response;
+    } catch (error) {
+      console.error('Error fetching streams:', error);
+      throw error;
+    }
   }
 
-  static async getActiveStreams(server: typeof servers.$inferSelect) {
+  static async getActiveStreams(server: typeof servers.$inferSelect): Promise<FlussonicStream[]> {
     try {
+      console.log('Getting active streams for server:', server.name);
       const response = await this.getServerStreams(server);
-      return response.streams.filter(stream => stream.alive && stream.input);
+      
+      if (!response.streams) {
+        console.warn('No streams array in response');
+        return [];
+      }
+      
+      const activeStreams = response.streams.filter(stream => stream.alive);
+      console.log('Found active streams:', activeStreams.length);
+      return activeStreams;
     } catch (error) {
       console.error(`Failed to get active streams for server ${server.name}:`, error);
       return [];
