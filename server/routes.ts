@@ -529,47 +529,35 @@ export function registerRoutes(app: Express): Server {
     const month = now.getMonth() + 1;
     
     try {
-      const bytesIn = Math.min(Number(stream.streamStatus.stats.bytes_in), Number.MAX_SAFE_INTEGER);
-      const bytesOut = Math.min(Number(stream.streamStatus.stats.bytes_out), Number.MAX_SAFE_INTEGER);
+      // Convert string values to numbers, keeping them as BigInt internally
+      const bytesIn = BigInt(stream.streamStatus.stats.bytes_in);
+      const bytesOut = BigInt(stream.streamStatus.stats.bytes_out);
       
       console.log(`Processing traffic for stream ${stream.id} - Year: ${year}, Month: ${month}`);
-      console.log(`Bytes - In: ${bytesIn}, Out: ${bytesOut}`);
+      console.log(`Bytes - In: ${bytesIn.toString()}, Out: ${bytesOut.toString()}`);
       
-      // Update or create current month's stats
-      const [existingStat] = await db
-        .select()
-        .from(trafficStats)
-        .where(and(
-          eq(trafficStats.streamId, stream.id),
-          eq(trafficStats.year, year),
-          eq(trafficStats.month, month)
-        ))
-        .limit(1);
-
-      if (existingStat) {
-        await db
-          .update(trafficStats)
-          .set({
-            bytesIn,
-            bytesOut,
+      // Insert new record for current month's stats
+      const [newStat] = await db
+        .insert(trafficStats)
+        .values({
+          streamId: stream.id,
+          year,
+          month,
+          bytesIn: Number(bytesIn), // Drizzle handles the conversion
+          bytesOut: Number(bytesOut),
+          lastUpdated: now,
+        })
+        .onConflictDoUpdate({
+          target: [trafficStats.streamId, trafficStats.year, trafficStats.month],
+          set: {
+            bytesIn: Number(bytesIn),
+            bytesOut: Number(bytesOut),
             lastUpdated: now,
-          })
-          .where(eq(trafficStats.id, existingStat.id));
-        console.log(`Updated traffic stats for stream ${stream.id}`);
-      } else {
-        const [newStat] = await db
-          .insert(trafficStats)
-          .values({
-            streamId: stream.id,
-            year,
-            month,
-            bytesIn,
-            bytesOut,
-            lastUpdated: now,
-          })
-          .returning();
-        console.log(`Created new traffic stats for stream ${stream.id}:`, newStat);
-      }
+          },
+        })
+        .returning();
+      
+      console.log(`Updated traffic stats for stream ${stream.id}:`, newStat);
     } catch (error) {
       console.error('Error updating traffic stats:', error);
       console.error(error);

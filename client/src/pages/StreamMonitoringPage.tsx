@@ -108,7 +108,7 @@ export default function StreamMonitoringPage() {
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-center mb-6">
-        <div className="w-[600px]">
+        <div className="w-full max-w-[600px]">
           <StreamPlayer 
             url={streamUrl} 
             title={stream.name}

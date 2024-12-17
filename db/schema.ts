@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, bigint } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 import type { StreamStats } from "../client/src/types";
@@ -89,13 +89,13 @@ export const selectPermissionSchema = createSelectSchema(permissions);
 export type Permission = typeof permissions.$inferSelect;
 export type NewPermission = typeof permissions.$inferInsert;
 
-export const trafficStats = pgTable("traffic_stats", {
+export const trafficStats = pgTable("traffic_stats_v2", {
   id: serial("id").primaryKey(),
   streamId: integer("stream_id").references(() => streams.id).notNull(),
   year: integer("year").notNull(),
   month: integer("month").notNull(),
-  bytesIn: integer("bytes_in").notNull().default(0),
-  bytesOut: integer("bytes_out").notNull().default(0),
+  bytesIn: bigint("bytes_in", { mode: "number" }).notNull().default(0),
+  bytesOut: bigint("bytes_out", { mode: "number" }).notNull().default(0),
   lastUpdated: timestamp("last_updated").defaultNow().notNull(),
 });
 
