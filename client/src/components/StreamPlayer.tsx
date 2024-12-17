@@ -102,20 +102,29 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
               forceHLS: true,
               hlsOptions: {
                 enableWorker: true,
-                debug: true,
+                debug: process.env.NODE_ENV !== 'production',
                 xhrSetup: function(xhr: XMLHttpRequest) {
                   xhr.withCredentials = false;
                 },
+                // Increased timeouts for better stability
                 manifestLoadingTimeOut: 30000,
-                manifestLoadingMaxRetry: 3,
+                manifestLoadingMaxRetry: 5,
                 levelLoadingTimeOut: 30000,
-                levelLoadingMaxRetry: 3,
+                levelLoadingMaxRetry: 5,
                 fragLoadingTimeOut: 30000,
-                fragLoadingMaxRetry: 3,
+                fragLoadingMaxRetry: 5,
+                // Auto quality selection
                 startLevel: -1,
                 autoStartLoad: true,
+                // Live stream specific options
                 liveDurationInfinity: true,
-                liveBackBufferLength: 0,
+                liveBackBufferLength: 30,
+                // Enable low latency mode
+                lowLatencyMode: true,
+                // Disable subtitle/caption processing
+                enableWebVTT: false,
+                enableIMSC1: false,
+                enableCEA708Captions: false,
               },
             },
           }}

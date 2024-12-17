@@ -94,7 +94,7 @@ export default function StreamMonitoringPage() {
     );
   }
 
-  // Construct HLS URL based on server URL and stream key
+  // Construct HLS URL based on server URL and stream key with fallback paths
   const streamUrl = (() => {
     if (!stream || !stream.server?.url || !stream.streamKey) {
       console.log('Missing stream data:', { stream, serverUrl: stream?.server?.url, streamKey: stream?.streamKey });
@@ -107,12 +107,32 @@ export default function StreamMonitoringPage() {
     }
 
     const baseUrl = stream.server.url.replace(/\/$/, '');
-    // Ensure baseUrl doesn't have http:// or https:// twice
     const cleanBaseUrl = baseUrl.replace(/^https?:\/\//, '');
-    // Construct proper HLS URL with protocol
-    const url = `${window.location.protocol}//${cleanBaseUrl}/live/${stream.streamKey}/index.m3u8`;
-    console.log('Generated stream URL:', url);
-    return url;
+    
+    // Try different URL patterns in order:
+    // 1. Standard HLS path
+    const primaryUrl = `${window.location.protocol}//${cleanBaseUrl}/live/${stream.streamKey}/index.m3u8`;
+    
+    // 2. Alternative paths (uncomment if needed)
+    const fallbackUrls = [
+      // `${window.location.protocol}//${cleanBaseUrl}/streaming/${stream.streamKey}/index.m3u8`,
+      // `${window.location.protocol}//${cleanBaseUrl}/hls/${stream.streamKey}/index.m3u8`,
+      // Direct stream URL as last resort
+      // `${window.location.protocol}//${cleanBaseUrl}/${stream.streamKey}/index.m3u8`
+    ];
+    
+    console.log('Stream URLs:', {
+      primary: primaryUrl,
+      fallbacks: fallbackUrls,
+      streamDetails: {
+        serverUrl: baseUrl,
+        streamKey: stream.streamKey,
+        isAlive: stream.streamStatus?.stats.alive,
+        protocol: window.location.protocol
+      }
+    });
+    
+    return primaryUrl;
   })();
   
   // Detailed logging for stream debugging
