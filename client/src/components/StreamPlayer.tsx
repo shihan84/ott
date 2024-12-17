@@ -97,9 +97,10 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
           config={{
             file: {
               forceHLS: true,
+              hlsVersion: '1.4.5',
               hlsOptions: {
                 enableWorker: true,
-                debug: false,
+                debug: true, // Enable debug mode to see what's happening
                 xhrSetup: function(xhr: XMLHttpRequest) {
                   xhr.withCredentials = false;
                 },
@@ -110,10 +111,14 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
                 fragLoadingTimeOut: 20000,
                 fragLoadingMaxRetry: 5,
                 startLevel: -1, // Auto quality selection
+                autoStartLoad: true,
                 defaultAudioCodec: undefined,
-                progressive: true, // Enable for better support
+                progressive: true,
                 lowLatencyMode: true,
-                backBufferLength: 90
+                backBufferLength: 90,
+                enableWebVTT: false,
+                enableIMSC1: false,
+                enableCEA708Captions: false,
               },
             },
           }}

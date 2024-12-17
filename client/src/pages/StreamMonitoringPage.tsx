@@ -95,8 +95,22 @@ export default function StreamMonitoringPage() {
   }
 
   // Construct HLS URL based on server URL and stream key
-  const streamUrl = stream && stream.streamStatus?.stats.alive && stream.server?.url ? 
-    `${stream.server.url.replace(/\/$/, '')}/${stream.streamKey}/index.m3u8` : '';
+  const streamUrl = (() => {
+    if (!stream || !stream.server?.url || !stream.streamKey) {
+      console.log('Missing stream data:', { stream, serverUrl: stream?.server?.url, streamKey: stream?.streamKey });
+      return '';
+    }
+    
+    if (!stream.streamStatus?.stats.alive) {
+      console.log('Stream is not alive:', stream.streamStatus);
+      return '';
+    }
+
+    const baseUrl = stream.server.url.replace(/\/$/, '');
+    const url = `${baseUrl}/${stream.streamKey}/index.m3u8`;
+    console.log('Generated stream URL:', url);
+    return url;
+  })();
   
   // Detailed logging for stream debugging
   console.log('Stream details:', {
