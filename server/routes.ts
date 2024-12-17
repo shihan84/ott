@@ -6,6 +6,7 @@ import { db } from "@db";
 import { users, servers, streams, permissions } from "@db/schema";
 import { eq, and } from "drizzle-orm";
 import { setupFlussonicIntegration } from "./flussonic";
+import { flussonicService } from "./services/flussonic";
 
 function requireAuth(req: Express.Request, res: Express.Response, next: Function) {
   if (!req.isAuthenticated()) {
@@ -49,17 +50,21 @@ export function registerRoutes(app: Express): Server {
       const serversWithHealth = await Promise.all(
         allServers.map(async (server) => {
           try {
-            // Validate server authentication first
+            // Validate server authentication and fetch stats
             await flussonicService.validateToken(server.id);
-            const stats = await fetchServerStats(server);
+            const systemStats = await flussonicService.makeAuthenticatedRequest(server, '/system_stat');
+            const streamsStats = await flussonicService.makeAuthenticatedRequest(server, '/streams');
+            
             return {
               ...server,
               health: {
-                status: stats.system ? 'online' : 'offline',
-                cpuUsage: stats.system.cpu_usage,
-                memoryUsage: stats.system.memory_usage,
-                activeStreams: stats.streams.length,
-                totalBandwidth: stats.streams.reduce((sum, stream) => sum + stream.bandwidth_in, 0),
+                status: 'online',
+                cpuUsage: systemStats.cpu?.total || 0,
+                memoryUsage: systemStats.memory ? 
+                  (systemStats.memory.used / systemStats.memory.total) * 100 : 0,
+                activeStreams: (streamsStats.streams || []).length,
+                totalBandwidth: (streamsStats.streams || [])
+                  .reduce((sum: number, stream: any) => sum + (stream.bytes_in || 0), 0),
                 lastChecked: new Date().toISOString(),
               },
             };
@@ -85,11 +90,19 @@ export function registerRoutes(app: Express): Server {
   });
 
   app.post("/api/servers", requireAdmin, async (req, res) => {
-    const { name, url, apiKey } = req.body;
+    const { name, url, username, password } = req.body;
     
     try {
       // Test connection before saving
-      const server = { name, url, apiKey } as typeof servers.$inferInsert;
+      const server = { 
+        name, 
+        url, 
+        username, 
+        password,
+        status: 'offline',
+      } as typeof servers.$inferInsert;
+      
+      // Validate connection
       await flussonicService.authenticate(server);
       
       const [newServer] = await db
@@ -102,8 +115,9 @@ export function registerRoutes(app: Express): Server {
         .returning();
       
       res.json(newServer);
-    } catch (error: any) {
-      res.status(400).send(error.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create server';
+      res.status(400).send(errorMessage);
     }
   });
 
