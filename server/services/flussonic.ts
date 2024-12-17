@@ -28,7 +28,7 @@ export class FlussonicService {
       
       // Parse and validate the server URL
       const serverUrl = new URL(server.url);
-      const apiUrl = new URL('/api/sessions', serverUrl).toString();
+      const apiUrl = new URL('/streamer/api/v3/sessions', serverUrl).toString();
       console.log(`Attempting to authenticate with Flussonic server at: ${apiUrl}`);
       
       const response = await fetch(apiUrl, {
@@ -120,7 +120,7 @@ export class FlussonicService {
         
         // Construct the API URL - use the base URL and append the API path
         const apiPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-        const apiUrl = new URL(`/api${apiPath}`, serverUrl).toString();
+        const apiUrl = new URL(`/streamer/api/v3${apiPath}`, serverUrl).toString();
         
         console.log(`Making request to Flussonic API: ${apiUrl}`);
         
