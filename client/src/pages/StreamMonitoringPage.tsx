@@ -11,6 +11,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 function formatBitrate(bitrate: number | undefined): string {
   if (!bitrate || typeof bitrate !== 'number') return 'N/A';
+  // Convert from Kbps to Mbps (input is already in Kbps)
   const mbps = bitrate / 1000;
   return `${mbps.toFixed(2)} Mbps`;
 }
@@ -27,6 +28,20 @@ function formatUptime(timestamp: number): string {
   
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 }
+
+function formatBytes(bytes: number | undefined): string {
+  if (bytes === undefined) return 'N/A';
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(2)} KB`;
+  const mb = kb / 1024;
+  if (mb < 1024) return `${mb.toFixed(2)} MB`;
+  const gb = mb / 1024;
+  if (gb < 1024) return `${gb.toFixed(2)} GB`;
+  const tb = gb / 1024;
+  return `${tb.toFixed(2)} TB`;
+}
+
 
 export default function StreamMonitoringPage() {
   const [, setLocation] = useLocation();
@@ -141,6 +156,33 @@ export default function StreamMonitoringPage() {
               }
             </p>
             <p className="text-sm text-muted-foreground">Hours:Minutes</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <Activity className="w-5 h-5 text-primary" />
+              <h3 className="font-medium">Monthly Traffic</h3>
+            </div>
+            <p className="mt-2 text-2xl font-bold">
+              {stream.streamStatus?.stats ? formatBytes(stream.streamStatus.stats.bytes_in + stream.streamStatus.stats.bytes_out) : 'N/A'}
+            </p>
+            <p className="text-sm text-muted-foreground">Total data transferred</p>
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div>
+                <span className="text-sm text-muted-foreground">Input Traffic</span>
+                <p className="text-lg font-semibold">
+                  {stream.streamStatus?.stats ? formatBytes(stream.streamStatus.stats.bytes_in) : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <span className="text-sm text-muted-foreground">Output Traffic</span>
+                <p className="text-lg font-semibold">
+                  {stream.streamStatus?.stats ? formatBytes(stream.streamStatus.stats.bytes_out) : 'N/A'}
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
