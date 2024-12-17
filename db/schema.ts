@@ -88,3 +88,25 @@ export const insertPermissionSchema = createInsertSchema(permissions);
 export const selectPermissionSchema = createSelectSchema(permissions);
 export type Permission = typeof permissions.$inferSelect;
 export type NewPermission = typeof permissions.$inferInsert;
+
+export const trafficStats = pgTable("traffic_stats", {
+  id: serial("id").primaryKey(),
+  streamId: integer("stream_id").references(() => streams.id).notNull(),
+  year: integer("year").notNull(),
+  month: integer("month").notNull(),
+  bytesIn: integer("bytes_in").notNull().default(0),
+  bytesOut: integer("bytes_out").notNull().default(0),
+  lastUpdated: timestamp("last_updated").defaultNow().notNull(),
+});
+
+export const trafficStatsRelations = relations(trafficStats, ({ one }) => ({
+  stream: one(streams, {
+    fields: [trafficStats.streamId],
+    references: [streams.id],
+  }),
+}));
+
+export const insertTrafficStatsSchema = createInsertSchema(trafficStats);
+export const selectTrafficStatsSchema = createSelectSchema(trafficStats);
+export type TrafficStats = typeof trafficStats.$inferSelect;
+export type NewTrafficStats = typeof trafficStats.$inferInsert;

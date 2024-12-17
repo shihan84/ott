@@ -3,8 +3,8 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { setupWebSocket } from "./websocket";
 import { db } from "@db";
-import { users, servers, streams, permissions, type User } from "@db/schema";
-import { eq, sql, and } from "drizzle-orm";
+import { users, servers, streams, permissions, trafficStats, type User } from "@db/schema";
+import { eq, sql, and, between } from "drizzle-orm";
 import type { FlussonicStreamsResponse } from "./flussonic";
 import { flussonicService, StreamStatisticsService } from "./services/flussonic";
 import { crypto } from "./auth";
@@ -404,6 +404,72 @@ export function registerRoutes(app: Express): Server {
   const httpServer = createServer(app);
 
   // Setup WebSocket server for real-time updates
+  // Traffic stats routes
+  app.get("/api/streams/:streamId/traffic", requireAuth, async (req, res) => {
+    try {
+      const streamId = parseInt(req.params.streamId);
+      const monthsToShow = 6; // Show last 6 months
+      
+      // Calculate date range
+      const now = new Date();
+      const startDate = new Date(now.getFullYear(), now.getMonth() - monthsToShow + 1, 1);
+      
+      const stats = await db
+        .select()
+        .from(trafficStats)
+        .where(and(
+          eq(trafficStats.streamId, streamId),
+          sql`(${trafficStats.year} * 100 + ${trafficStats.month}) >= ${startDate.getFullYear() * 100 + startDate.getMonth() + 1}`
+        ))
+        .orderBy(sql`${trafficStats.year} * 100 + ${trafficStats.month}`);
+      
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching traffic stats:', error);
+      res.status(500).send("Failed to fetch traffic stats");
+    }
+  });
+
+  // Update traffic stats (called periodically by the server)
+  async function updateTrafficStats(stream: typeof streams.$inferSelect) {
+    if (!stream.streamStatus) return;
+    
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    
+    const [existingStat] = await db
+      .select()
+      .from(trafficStats)
+      .where(and(
+        eq(trafficStats.streamId, stream.id),
+        eq(trafficStats.year, year),
+        eq(trafficStats.month, month)
+      ))
+      .limit(1);
+    
+    if (existingStat) {
+      await db
+        .update(trafficStats)
+        .set({
+          bytesIn: BigInt(stream.streamStatus.stats.bytes_in),
+          bytesOut: BigInt(stream.streamStatus.stats.bytes_out),
+          lastUpdated: now,
+        })
+        .where(eq(trafficStats.id, existingStat.id));
+    } else {
+      await db
+        .insert(trafficStats)
+        .values({
+          streamId: stream.id,
+          year,
+          month,
+          bytesIn: BigInt(stream.streamStatus.stats.bytes_in),
+          bytesOut: BigInt(stream.streamStatus.stats.bytes_out),
+        });
+    }
+  }
+
   setupWebSocket(httpServer);
 
   return httpServer;

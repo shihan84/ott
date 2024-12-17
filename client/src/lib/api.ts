@@ -52,4 +52,14 @@ export const api = {
     fetchApi<void>('/permissions', { method: 'POST', body: JSON.stringify({ userId, streamId }) }),
   removeUserPermission: (userId: number, streamId: number) =>
     fetchApi<void>(`/permissions/${userId}/${streamId}`, { method: 'DELETE' }),
+    
+  // Traffic stats
+  getStreamTraffic: (streamId: number) =>
+    fetchApi<Array<{
+      year: number;
+      month: number;
+      bytesIn: number;
+      bytesOut: number;
+      lastUpdated: string;
+    }>>(`/streams/${streamId}/traffic`),
 };

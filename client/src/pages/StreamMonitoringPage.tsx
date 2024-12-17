@@ -3,12 +3,14 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, Loader2 } from 'lucide-react';
+import MonthlyTrafficStats from '@/components/MonthlyTrafficStats';
 import { useLocation } from 'wouter';
 import { Activity, Users, Wifi, Clock } from 'lucide-react';
 import type { StreamWithStats, MediaTrack } from '@/types';
 import { api } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
 import StreamPlayer from '@/components/StreamPlayer';
+import { useToast } from '@/hooks/use-toast';
 
 function formatBitrate(bitrate: number | undefined): string {
   if (!bitrate || typeof bitrate !== 'number') return 'N/A';
@@ -217,32 +219,25 @@ export default function StreamMonitoringPage() {
         </Card>
       </div>
 
-      {stream.streamStatus?.stats?.media_info?.tracks && (
+      {/* Monthly Traffic Stats */}
+      {stream && (
         <Card>
           <CardHeader>
-            <CardTitle>Stream Information</CardTitle>
+            <CardTitle>Traffic History</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              {stream.streamStatus.stats.media_info.tracks.map((track: MediaTrack, index: number) => (
-                <div key={index} className="space-y-2">
-                  <h3 className="font-medium">{track.content.toUpperCase()} Track</h3>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {Object.entries(track).map(([key, value]) => {
-                      if (key === 'content') return null;
-                      return (
-                        <div key={key} className="flex justify-between space-x-4">
-                          <span className="text-sm text-muted-foreground capitalize">
-                            {key.replace(/_/g, ' ')}
-                          </span>
-                          <span className="text-sm font-medium">{value?.toString() || 'N/A'}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <MonthlyTrafficStats 
+              streamId={stream.id}
+              onError={(error) => {
+                console.error('Failed to load traffic stats:', error);
+                const { toast } = useToast();
+                toast({
+                  title: "Error",
+                  description: "Failed to load traffic statistics",
+                  variant: "destructive",
+                });
+              }}
+            />
           </CardContent>
         </Card>
       )}
