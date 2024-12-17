@@ -333,18 +333,72 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Permission routes
-  app.get("/api/permissions", requireAdmin, async (req, res) => {
-    const allPermissions = await db.select().from(permissions);
-    res.json(allPermissions);
+  app.get("/api/users/:userId/permissions", requireAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const userPermissions = await db
+        .select()
+        .from(permissions)
+        .where(eq(permissions.userId, userId));
+      res.json(userPermissions);
+    } catch (error) {
+      console.error('Error fetching user permissions:', error);
+      res.status(500).send("Failed to fetch permissions");
+    }
   });
 
   app.post("/api/permissions", requireAdmin, async (req, res) => {
-    const { userId, streamId } = req.body;
-    const newPermission = await db
-      .insert(permissions)
-      .values({ userId, streamId })
-      .returning();
-    res.json(newPermission[0]);
+    try {
+      const { userId, streamId } = req.body;
+      
+      // Check if permission already exists
+      const [existingPermission] = await db
+        .select()
+        .from(permissions)
+        .where(and(
+          eq(permissions.userId, userId),
+          eq(permissions.streamId, streamId)
+        ))
+        .limit(1);
+
+      if (existingPermission) {
+        return res.status(400).send("Permission already exists");
+      }
+
+      const [newPermission] = await db
+        .insert(permissions)
+        .values({ userId, streamId })
+        .returning();
+        
+      res.json(newPermission);
+    } catch (error) {
+      console.error('Error creating permission:', error);
+      res.status(500).send("Failed to create permission");
+    }
+  });
+
+  app.delete("/api/permissions/:userId/:streamId", requireAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const streamId = parseInt(req.params.streamId);
+      
+      const [deletedPermission] = await db
+        .delete(permissions)
+        .where(and(
+          eq(permissions.userId, userId),
+          eq(permissions.streamId, streamId)
+        ))
+        .returning();
+
+      if (!deletedPermission) {
+        return res.status(404).send("Permission not found");
+      }
+
+      res.json(deletedPermission);
+    } catch (error) {
+      console.error('Error deleting permission:', error);
+      res.status(500).send("Failed to delete permission");
+    }
   });
 
   const httpServer = createServer(app);

@@ -13,7 +13,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { api } from '@/lib/api';
 import type { User } from '@db/schema';
-import { Loader2, UserPlus, Trash2 } from 'lucide-react';
+import { Loader2, UserPlus, Trash2, Key } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const userSchema = z.object({
   username: z.string().min(3),
@@ -23,12 +30,31 @@ const userSchema = z.object({
 
 export default function UserManagement() {
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isPermissionDialogOpen, setIsPermissionDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ['/api/users'],
     queryFn: api.getUsers,
+  });
+
+  const { data: streams } = useQuery({
+    queryKey: ['/api/streams'],
+    queryFn: async () => {
+      const servers = await api.getServers();
+      const allStreams = await Promise.all(
+        servers.map(server => api.getServerStreams(server.id))
+      );
+      return allStreams.flat();
+    },
+  });
+
+  const { data: userPermissions } = useQuery({
+    queryKey: ['/api/users', selectedUser?.id, 'permissions'],
+    queryFn: () => api.getUserPermissions(selectedUser!.id),
+    enabled: !!selectedUser,
   });
 
   const form = useForm<z.infer<typeof userSchema>>({
@@ -148,6 +174,97 @@ export default function UserManagement() {
               <TableHead>Role</TableHead>
               <TableHead>Created At</TableHead>
               <TableHead>Actions</TableHead>
+      <Dialog open={isPermissionDialogOpen} onOpenChange={setIsPermissionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Manage Stream Permissions</DialogTitle>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-medium mb-2">User: {selectedUser.username}</h3>
+                <div className="space-y-2">
+                  <Select
+                    onValueChange={(value) => {
+                      const streamId = parseInt(value);
+                      api.addUserPermission(selectedUser.id, streamId)
+                        .then(() => {
+                          queryClient.invalidateQueries({ 
+                            queryKey: ['/api/users', selectedUser.id, 'permissions'] 
+                          });
+                          toast({
+                            title: "Success",
+                            description: "Permission added successfully",
+                          });
+                        })
+                        .catch((error) => {
+                          toast({
+                            title: "Error",
+                            description: error.message,
+                            variant: "destructive",
+                          });
+                        });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a stream" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {streams?.map((stream) => (
+                        <SelectItem key={stream.id} value={stream.id.toString()}>
+                          {stream.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium mb-2">Current Permissions</h4>
+                  {userPermissions?.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No permissions</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {userPermissions?.map((permission) => {
+                        const stream = streams?.find(s => s.id === permission.streamId);
+                        return (
+                          <div key={permission.streamId} className="flex items-center justify-between">
+                            <span>{stream?.name}</span>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => {
+                                api.removeUserPermission(selectedUser.id, permission.streamId)
+                                  .then(() => {
+                                    queryClient.invalidateQueries({ 
+                                      queryKey: ['/api/users', selectedUser.id, 'permissions'] 
+                                    });
+                                    toast({
+                                      title: "Success",
+                                      description: "Permission removed successfully",
+                                    });
+                                  })
+                                  .catch((error) => {
+                                    toast({
+                                      title: "Error",
+                                      description: error.message,
+                                      variant: "destructive",
+                                    });
+                                  });
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -157,14 +274,26 @@ export default function UserManagement() {
                 <TableCell>{user.isAdmin ? 'Admin' : 'User'}</TableCell>
                 <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => deleteMutation.mutate(user.id)}
-                    disabled={deleteMutation.isPending}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setIsPermissionDialogOpen(true);
+                      }}
+                    >
+                      <Key className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => deleteMutation.mutate(user.id)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

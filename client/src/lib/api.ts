@@ -44,4 +44,12 @@ export const api = {
     fetchApi<User>('/users', { method: 'POST', body: JSON.stringify(data) }),
   deleteUser: (id: number) =>
     fetchApi<void>(`/users/${id}`, { method: 'DELETE' }),
+  
+  // Permission management
+  getUserPermissions: (userId: number) => 
+    fetchApi<{ streamId: number; userId: number }[]>(`/users/${userId}/permissions`),
+  addUserPermission: (userId: number, streamId: number) =>
+    fetchApi<void>('/permissions', { method: 'POST', body: JSON.stringify({ userId, streamId }) }),
+  removeUserPermission: (userId: number, streamId: number) =>
+    fetchApi<void>(`/permissions/${userId}/${streamId}`, { method: 'DELETE' }),
 };
