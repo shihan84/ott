@@ -48,13 +48,6 @@ export default function MonthlyTrafficStats({ streamId }: MonthlyTrafficStatsPro
     );
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-[300px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="relative">
@@ -62,8 +55,6 @@ export default function MonthlyTrafficStats({ streamId }: MonthlyTrafficStatsPro
         <TableHeader>
           <TableRow>
             <TableHead>Month</TableHead>
-            <TableHead>Input Traffic</TableHead>
-            <TableHead>Output Traffic</TableHead>
             <TableHead>Total Transfer</TableHead>
             <TableHead>Last Updated</TableHead>
           </TableRow>
@@ -79,8 +70,6 @@ export default function MonthlyTrafficStats({ streamId }: MonthlyTrafficStatsPro
             tableData.map((row, index) => (
               <TableRow key={index}>
                 <TableCell>{row.month}</TableCell>
-                <TableCell>{formatBytes(row.bytesIn)}</TableCell>
-                <TableCell>{formatBytes(row.bytesOut)}</TableCell>
                 <TableCell>{formatBytes(row.bytesIn + row.bytesOut)}</TableCell>
                 <TableCell className="text-muted-foreground">{row.lastUpdated}</TableCell>
               </TableRow>
