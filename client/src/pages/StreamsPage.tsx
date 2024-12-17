@@ -9,9 +9,11 @@ import { formatDistanceToNow, formatDistance } from 'date-fns';
 import type { StreamWithStats } from '@/types';
 import { api } from '@/lib/api';
 
-function formatBitrate(bitrate: number): string {
-  // Always show in Mbps
-  return `${(bitrate / 1000000).toFixed(2)} Mbps`;
+function formatBitrate(bitrate: number | undefined): string {
+  if (!bitrate || typeof bitrate !== 'number') return 'N/A';
+  // Convert to Mbps and ensure 2 decimal places
+  const mbps = bitrate / 1000000;
+  return `${mbps.toFixed(2)} Mbps`;
 }
 
 function formatUptime(timestamp: number): string {
@@ -93,9 +95,7 @@ export default function StreamsPage() {
                     <TableCell>
                       <div className="flex items-center">
                         <Wifi className="w-4 h-4 mr-1" />
-                        {stream.streamStatus?.stats.input_bitrate 
-                          ? `${formatBitrate(stream.streamStatus.stats.input_bitrate)}` 
-                          : 'N/A'}
+                        {formatBitrate(stream.streamStatus?.stats?.input_bitrate)}
                       </div>
                     </TableCell>
                     <TableCell>
