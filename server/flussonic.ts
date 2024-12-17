@@ -82,16 +82,19 @@ async function fetchServerStats(server: typeof servers.$inferSelect): Promise<Fl
     );
 
     // Map Flussonic API response to our expected format
-    return streamsData.streams.map(stream => ({
-      name: stream.name,
-      input: {
-        connected: stream.alive,
-        bitrate: stream.input?.bitrate || 0,
-      },
-      clients: stream.clients || 0,
-      bandwidth_in: stream.input?.bytes_in || 0,
-      uptime: stream.input?.time || 0,
-    }));
+    // Only include streams that are alive and have valid input
+    return streamsData.streams
+      .filter(stream => stream.alive && stream.input)
+      .map(stream => ({
+        name: stream.name,
+        input: {
+          connected: true, // We already filtered for alive streams
+          bitrate: stream.input!.bitrate || 0,
+        },
+        clients: stream.clients || 0,
+        bandwidth_in: stream.input!.bytes_in || 0,
+        uptime: stream.input!.time || 0,
+      }));
   } catch (error) {
     console.error(`Error fetching stats from server ${server.name}:`, error);
     return [];

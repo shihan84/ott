@@ -85,18 +85,26 @@ export function registerRoutes(app: Express): Server {
             );
             
             // Transform the response to our expected format
-            const streamMetrics = streamsStats.streams.reduce((metrics, stream) => {
-              // Only count streams that are alive and have input stats
-              if (stream.alive && stream.input) {
-                metrics.activeStreams++;
-                metrics.totalBandwidth += stream.input.bytes_in || 0;
-                metrics.totalBitrate += stream.input.bitrate || 0;
-              }
-              return metrics;
-            }, {
-              activeStreams: 0,
-              totalBandwidth: 0,
-              totalBitrate: 0
+            // Calculate metrics only for active streams with valid input data
+            const activeStreams = streamsStats.streams.filter(
+              stream => stream.alive && stream.input
+            );
+            
+            const streamMetrics = {
+              activeStreams: activeStreams.length,
+              totalBandwidth: activeStreams.reduce(
+                (sum, stream) => sum + (stream.input?.bytes_in || 0),
+                0
+              ),
+              totalBitrate: activeStreams.reduce(
+                (sum, stream) => sum + (stream.input?.bitrate || 0),
+                0
+              ),
+            };
+
+            console.log('Stream metrics:', {
+              totalStreams: streamsStats.streams.length,
+              ...streamMetrics
             });
 
             return {
