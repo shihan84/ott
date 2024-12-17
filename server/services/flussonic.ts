@@ -49,6 +49,28 @@ interface FlussonicSystemStats {
 }
 
 export class FlussonicService {
+  async getStreams(server: typeof servers.$inferSelect): Promise<FlussonicStream[]> {
+    try {
+      const response = await this.makeAuthenticatedRequest<FlussonicStreamsResponse>(
+        server,
+        '/streams',
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          }
+        },
+        true // Enable schema validation
+      );
+      
+      console.log('Received streams from Flussonic:', response);
+      return response.streams || [];
+    } catch (error) {
+      console.error('Error fetching streams:', error);
+      throw error;
+    }
+  }
+
   private async makeRequest(url: string, options: RequestInit & { rejectUnauthorized?: boolean } = {}) {
     const { rejectUnauthorized = true, ...fetchOptions } = options;
     
