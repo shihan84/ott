@@ -165,11 +165,52 @@ export function registerRoutes(app: Express): Server {
 
       console.log('Starting stream fetch for server:', serverId);
       
-      // First get streams from database
+      // First fetch active streams from Flussonic
+      console.log(`Fetching streams from Flussonic for server ${server.name} (${server.url})`);
+      const activeStreams = await flussonicService.getStreams(server);
+      console.log('Flussonic streams received:', activeStreams.length);
+
+      // For each active stream, create or update in database
+      for (const activeStream of activeStreams) {
+        const streamKey = activeStream.name;
+        const [existingStream] = await db
+          .select()
+          .from(streams)
+          .where(and(
+            eq(streams.serverId, serverId),
+            eq(streams.streamKey, streamKey)
+          ))
+          .limit(1);
+
+        if (!existingStream) {
+          // Create new stream
+          await db.insert(streams).values({
+            serverId,
+            name: streamKey,
+            streamKey,
+            active: true,
+            lastSeen: new Date(),
+            streamStatus: activeStream
+          });
+        } else {
+          // Update existing stream
+          await db
+            .update(streams)
+            .set({
+              active: true,
+              lastSeen: new Date(),
+              streamStatus: activeStream
+            })
+            .where(eq(streams.id, existingStream.id));
+        }
+      }
+
+      // Now get all streams from database
       let streamsQuery = db
         .select()
         .from(streams)
-        .where(eq(streams.serverId, serverId));
+        .where(eq(streams.serverId, serverId))
+        .orderBy(streams.lastSeen);
       
       if (!req.user.isAdmin) {
         console.log('User is not admin, applying permission filter');
@@ -178,41 +219,14 @@ export function registerRoutes(app: Express): Server {
           .where(eq(permissions.userId, req.user.id));
       }
       
-      console.log('Executing database query for streams');
-      const streamData = await streamsQuery;
-      console.log('Database streams found:', streamData.length);
+      console.log('Fetching final stream list from database');
+      const finalStreams = await streamsQuery;
+      console.log('Total streams found:', finalStreams.length);
       
-      // Then get active streams from Flussonic
-      try {
-        console.log(`Fetching streams for server ${server.name} (${server.url})`);
-        const activeStreams = await flussonicService.getStreams(server);
-        console.log('Active streams received:', activeStreams);
-        
-        // Merge stream data with active status
-        const enrichedStreams = streamData.map(stream => {
-          console.log(`Looking for stream with key: ${stream.streamKey}`);
-          const activeStream = activeStreams.find(as => as.name === stream.streamKey);
-          console.log(`Stream ${stream.streamKey} status:`, activeStream || 'not found');
-          return {
-            ...stream,
-            streamStatus: activeStream || null
-          };
-        });
-        
-        console.log('Sending enriched streams:', enrichedStreams);
-        res.json(enrichedStreams);
-      } catch (error) {
-        console.error('Error fetching streams from Flussonic:', error);
-        // Still return the basic stream data even if Flussonic fetch fails
-        const enrichedStreams = streamData.map(stream => ({
-          ...stream,
-          streamStatus: null
-        }));
-        res.json(enrichedStreams);
-      }
+      res.json(finalStreams);
     } catch (error) {
-      console.error('Error fetching streams:', error);
-      res.status(500).json({ error: 'Failed to fetch streams' });
+      console.error('Error in stream processing:', error);
+      res.status(500).json({ error: 'Failed to process streams' });
     }
   });
 

@@ -351,9 +351,19 @@ export class StreamStatisticsService {
   static normalizeStreamStats(stream: FlussonicStream): FlussonicStream {
     return {
       name: stream.name,
-      alive: stream.stats.alive,
-      input: stream.stats.input_bitrate, //Corrected this line
-      clients: stream.stats.online_clients, //Corrected this line
+      stats: {
+        alive: stream.stats.alive,
+        status: stream.stats.status,
+        bytes_in: stream.stats.bytes_in,
+        bytes_out: stream.stats.bytes_out,
+        input_bitrate: stream.stats.input_bitrate,
+        online_clients: stream.stats.online_clients,
+        last_access_at: stream.stats.last_access_at,
+        last_dts: stream.stats.last_dts
+      },
+      template: stream.template,
+      static: stream.static,
+      nomedia: stream.nomedia
     };
   }
 }

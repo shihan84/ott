@@ -29,8 +29,9 @@ export const streams = pgTable("streams", {
   serverId: integer("server_id").references(() => servers.id).notNull(),
   name: text("name").notNull(),
   streamKey: text("stream_key").notNull(),
-  streamStatus: jsonb("stream_status").$type<StreamStats | null>(),
-  stats: jsonb("stats").default({}).notNull(),
+  streamStatus: jsonb("stream_status").$type<StreamStats | null>().default(null),
+  active: boolean("active").default(false).notNull(),
+  lastSeen: timestamp("last_seen"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
