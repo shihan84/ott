@@ -98,7 +98,14 @@ export default function StreamMonitoringPage() {
   const streamUrl = stream && stream.streamStatus?.stats.alive && stream.server?.url ? 
     `${stream.server.url.replace(/\/$/, '')}/${stream.streamKey}/index.m3u8` : '';
   
-  console.log('Stream URL:', streamUrl); // Add logging for debugging
+  // Detailed logging for stream debugging
+  console.log('Stream details:', {
+    streamUrl,
+    serverUrl: stream?.server?.url,
+    streamKey: stream?.streamKey,
+    isAlive: stream?.streamStatus?.stats.alive,
+    streamStatus: stream?.streamStatus
+  });
   
   // Get available video qualities from media info
   const videoTracks = stream?.streamStatus?.stats?.media_info?.tracks.filter(

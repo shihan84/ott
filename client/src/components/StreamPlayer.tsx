@@ -99,17 +99,32 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
               forceHLS: true,
               hlsOptions: {
                 enableWorker: true,
-                debug: true, // Enable debug mode temporarily to see what's happening
+                debug: false,
                 xhrSetup: function(xhr: XMLHttpRequest) {
-                  xhr.withCredentials = false; // Disable credentials for cross-origin requests
+                  xhr.withCredentials = false;
                 },
-                // Add more specific HLS.js options
-                manifestLoadingTimeOut: 10000, // Timeout for manifest loading
-                manifestLoadingMaxRetry: 3, // Maximum retry attempts
-                levelLoadingTimeOut: 10000, // Timeout for level loading
-                levelLoadingMaxRetry: 3 // Maximum retry attempts
+                manifestLoadingTimeOut: 20000,
+                manifestLoadingMaxRetry: 5,
+                levelLoadingTimeOut: 20000,
+                levelLoadingMaxRetry: 5,
+                fragLoadingTimeOut: 20000,
+                fragLoadingMaxRetry: 5,
+                startLevel: -1, // Auto quality selection
+                defaultAudioCodec: undefined,
+                progressive: true, // Enable for better support
+                lowLatencyMode: true,
+                backBufferLength: 90
               },
             },
+          }}
+          onProgress={(state) => {
+            console.log('Player progress:', state);
+          }}
+          onBuffer={() => {
+            console.log('Player buffering...');
+          }}
+          onBufferEnd={() => {
+            console.log('Player buffering ended');
           }}
         />
         
