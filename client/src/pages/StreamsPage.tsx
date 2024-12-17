@@ -11,8 +11,8 @@ import { api } from '@/lib/api';
 
 function formatBitrate(bitrate: number | undefined): string {
   if (!bitrate || typeof bitrate !== 'number') return 'N/A';
-  // Convert to Mbps and ensure 2 decimal places
-  const mbps = bitrate / 1000000;
+  // Convert from Kbps to Mbps (input is already in Kbps)
+  const mbps = bitrate / 1000;
   return `${mbps.toFixed(2)} Mbps`;
 }
 
