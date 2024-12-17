@@ -32,16 +32,44 @@ export class OpenAPIValidatorService {
       });
       
       // In development, we'll use a more forgiving approach to the spec
-      this.spec = process.env.NODE_ENV === 'development' 
-        ? { 
-            ...flussonicSpec,
-            paths: {},
-            components: {
-              ...flussonicSpec.components,
-              schemas: {}
+      // In development mode, we'll use a more permissive validation approach
+      if (process.env.NODE_ENV === 'development') {
+        this.spec = {
+          openapi: '3.0.0',
+          info: {
+            title: 'Flussonic API',
+            version: '1.0.0'
+          },
+          paths: {
+            '/streams': {
+              get: {
+                responses: {
+                  '200': {
+                    description: 'Success',
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'object',
+                          properties: {
+                            streams: {
+                              type: 'array',
+                              items: {
+                                type: 'object'
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             }
-          } as OpenAPIV3.Document
-        : flussonicSpec as OpenAPIV3.Document;
+          }
+        } as OpenAPIV3.Document;
+      } else {
+        this.spec = flussonicSpec as OpenAPIV3.Document;
+      }
 
       // Only validate spec in production
       if (process.env.NODE_ENV === 'production') {
