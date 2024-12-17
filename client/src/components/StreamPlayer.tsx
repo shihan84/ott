@@ -30,12 +30,24 @@ export default function StreamPlayer({ url, title, videoTracks }: StreamPlayerPr
   const handleError = useCallback((e: any) => {
     console.error('Stream playback error:', e);
     let errorMessage = 'Failed to load stream';
-    if (e === 'hlsError') {
+    
+    if (!url) {
+      errorMessage = 'No stream URL provided';
+    } else if (e === 'hlsError') {
       errorMessage = 'Failed to load HLS stream. The stream might be offline or the URL is incorrect.';
+    } else if (typeof e === 'object' && e.message) {
+      errorMessage = e.message;
     }
+    
+    console.log('Stream error details:', {
+      url,
+      error: e,
+      message: errorMessage
+    });
+    
     setError(errorMessage);
     setIsReady(false);
-  }, []);
+  }, [url]);
 
   const toggleFullscreen = useCallback(() => {
     const element = document.querySelector('.react-player');

@@ -48,15 +48,28 @@ export default function StreamMonitoringPage() {
   const [, setLocation] = useLocation();
   const { serverId, streamId } = useParams();
   
+  const { data: servers } = useQuery({
+    queryKey: ['/api/servers'],
+    queryFn: api.getServers,
+  });
+
   const { data: stream, isLoading } = useQuery<StreamWithStats>({
     queryKey: ['/api/servers', serverId, 'streams', streamId],
     queryFn: async () => {
       const streams = await api.getServerStreams(parseInt(serverId!));
       const stream = streams.find(s => s.id === parseInt(streamId!));
       if (!stream) throw new Error('Stream not found');
+      
+      // Attach server URL to the stream
+      const server = servers?.find(s => s.id === parseInt(serverId!));
+      if (server) {
+        stream.server = { url: server.url };
+      }
+      
       return stream;
     },
     refetchInterval: 5000, // Refresh every 5 seconds
+    enabled: !!servers,
   });
 
   if (isLoading) {
@@ -84,8 +97,10 @@ export default function StreamMonitoringPage() {
   }
 
   // Construct HLS URL based on server URL and stream key
-  const streamUrl = stream && stream.streamStatus?.stats.alive ? 
-    `${stream.server?.url}/${stream.streamKey}/index.m3u8` : '';
+  const streamUrl = stream && stream.streamStatus?.stats.alive && stream.server?.url ? 
+    `${stream.server.url.replace(/\/$/, '')}/${stream.streamKey}/index.m3u8` : '';
+  
+  console.log('Stream URL:', streamUrl); // Add logging for debugging
   
   // Get available video qualities from media info
   const videoTracks = stream?.streamStatus?.stats?.media_info?.tracks.filter(
