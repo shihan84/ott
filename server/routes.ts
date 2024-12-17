@@ -103,7 +103,7 @@ export function registerRoutes(app: Express): Server {
       } as typeof servers.$inferInsert;
       
       // Validate connection
-      await flussonicService.authenticate(server);
+      await flussonicService.validateAuth(server);
       
       const [newServer] = await db
         .insert(servers)
@@ -136,7 +136,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Test authentication
-      await flussonicService.authenticate(server);
+      await flussonicService.validateAuth(server);
       
       // Update server status
       const [updatedServer] = await db
