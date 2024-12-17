@@ -3,11 +3,17 @@ import ReactPlayer from 'react-player';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Volume2, VolumeX, Maximize, Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 
 interface StreamPlayerProps {
   url: string;
   title?: string;
+  videoTracks?: Array<{
+    width?: number;
+    height?: number;
+    bitrate?: number;
+  }>;
 }
 
 export default function StreamPlayer({ url, title }: StreamPlayerProps) {
@@ -72,6 +78,15 @@ export default function StreamPlayer({ url, title }: StreamPlayerProps) {
           onReady={handleReady}
           onError={handleError}
           className="react-player"
+          config={{
+            file: {
+              forceHLS: true,
+              hlsOptions: {
+                enableWorker: true,
+                debug: false,
+              },
+            },
+          }}
         />
         
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
@@ -96,6 +111,21 @@ export default function StreamPlayer({ url, title }: StreamPlayerProps) {
             >
               <Maximize className="h-5 w-5" />
             </Button>
+            {videoTracks && videoTracks.length > 0 && (
+              <Select defaultValue="auto">
+                <SelectTrigger className="w-[120px] bg-black/20 border-white/10 text-white">
+                  <SelectValue placeholder="Quality" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Auto</SelectItem>
+                  {videoTracks.map((track, index) => (
+                    <SelectItem key={index} value={`${track.height}p`}>
+                      {track.height}p {track.bitrate ? `(${Math.round(track.bitrate/1000)}Mbps)` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
       </CardContent>

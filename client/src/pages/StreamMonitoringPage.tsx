@@ -83,12 +83,21 @@ export default function StreamMonitoringPage() {
     );
   }
 
-  // Construct stream URL based on server URL and stream key
-  const streamUrl = stream ? `${stream.server?.url}/${stream.streamKey}` : '';
+  // Construct HLS URL based on server URL and stream key
+  const streamUrl = stream ? `${stream.server?.url}/${stream.streamKey}/index.m3u8` : '';
+  
+  // Get available video qualities from media info
+  const videoTracks = stream?.streamStatus?.stats?.media_info?.tracks.filter(
+    track => track.content === 'video'
+  ) || [];
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <StreamPlayer url={streamUrl} title={stream.name} />
+      <StreamPlayer 
+        url={streamUrl} 
+        title={stream.name}
+        videoTracks={videoTracks}
+      />
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
