@@ -221,14 +221,12 @@ export class StreamStatisticsService {
     }
   }
 
-  static normalizeStreamStats(stream: FlussonicStream) {
+  static normalizeStreamStats(stream: FlussonicStream): FlussonicStream {
     return {
       name: stream.name,
-      isActive: stream.alive,
-      bitrate: stream.input?.bitrate || 0,
-      bytesIn: stream.input?.bytes_in || 0,
-      activeViewers: stream.clients || 0,
-      uptime: stream.input?.time || 0,
+      alive: stream.alive,
+      input: stream.input,
+      clients: stream.clients,
     };
   }
 }

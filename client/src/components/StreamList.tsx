@@ -67,26 +67,26 @@ export default function StreamList() {
                 <TableCell className="font-medium">{stream.name}</TableCell>
                 <TableCell>{stream.streamKey}</TableCell>
                 <TableCell>
-                  <Badge variant={stream.streamStatus?.isActive ? 'default' : 'secondary'}>
+                  <Badge variant={stream.streamStatus?.alive ? 'default' : 'secondary'}>
                     <Activity className="w-4 h-4 mr-1" />
-                    {stream.streamStatus?.isActive ? 'Online' : 'Offline'}
+                    {stream.streamStatus?.alive ? 'Online' : 'Offline'}
                   </Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center">
                     <Users className="w-4 h-4 mr-1" />
-                    {stream.streamStatus?.activeViewers || 0}
+                    {stream.streamStatus?.clients || 0}
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center">
                     <Wifi className="w-4 h-4 mr-1" />
-                    {stream.streamStatus ? `${Math.round(stream.streamStatus.bitrate / 1024)} Kbps` : 'N/A'}
+                    {stream.streamStatus?.input ? `${Math.round(stream.streamStatus.input.bitrate / 1024)} Kbps` : 'N/A'}
                   </div>
                 </TableCell>
                 <TableCell>
-                  {stream.streamStatus?.isActive
-                    ? formatDistanceToNow(Date.now() - stream.streamStatus.uptime * 1000, { addSuffix: true })
+                  {stream.streamStatus?.alive && stream.streamStatus.input
+                    ? formatDistanceToNow(Date.now() - stream.streamStatus.input.time * 1000, { addSuffix: true })
                     : 'Offline'
                   }
                 </TableCell>
