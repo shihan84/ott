@@ -164,32 +164,23 @@ export function registerRoutes(app: Express): Server {
       }
       
       // Get streams for this server
-      let streamsQuery = db
-        .select()
-        .from(streams)
-        .where(eq(streams.serverId, serverId));
-      
-      if (!req.user.isAdmin) {
-        streamsQuery = streamsQuery
-          .innerJoin(permissions, eq(permissions.streamId, streams.id))
-          .where(eq(permissions.userId, req.user.id));
-      }
-      
-      const streamData = await streamsQuery;
-      
-      // Get active streams from Flussonic
       try {
+        console.log(`Fetching streams for server ${server.name} (${server.url})`);
         const activeStreams = await flussonicService.getStreams(server);
+        console.log('Active streams received:', activeStreams);
         
         // Merge stream data with active status
         const enrichedStreams = streamData.map(stream => {
+          console.log(`Looking for stream with key: ${stream.streamKey}`);
           const activeStream = activeStreams.find(as => as.name === stream.streamKey);
+          console.log(`Stream ${stream.streamKey} status:`, activeStream || 'not found');
           return {
             ...stream,
             streamStatus: activeStream || null
           };
         });
         
+        console.log('Sending enriched streams:', enrichedStreams);
         res.json(enrichedStreams);
       } catch (error) {
         console.error('Error fetching streams from Flussonic:', error);
@@ -204,6 +195,18 @@ export function registerRoutes(app: Express): Server {
       console.error('Error fetching streams:', error);
       res.status(500).json({ error: 'Failed to fetch streams' });
     }
+      let streamsQuery = db
+        .select()
+        .from(streams)
+        .where(eq(streams.serverId, serverId));
+      
+      if (!req.user.isAdmin) {
+        streamsQuery = streamsQuery
+          .innerJoin(permissions, eq(permissions.streamId, streams.id))
+          .where(eq(permissions.userId, req.user.id));
+      }
+      
+      const streamData = await streamsQuery;
   });
 
   app.post("/api/streams", requireAdmin, async (req, res) => {

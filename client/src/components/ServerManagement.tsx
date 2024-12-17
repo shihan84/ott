@@ -57,11 +57,27 @@ function ServerManagementContent({ isOpen, setIsOpen }: ServerManagementContentP
     queryFn: api.getServers,
   });
 
-  const { data: streams, isLoading: isLoadingStreams } = useQuery<StreamWithStats[]>({
+  const { data: streams, isLoading: isLoadingStreams, error: streamsError } = useQuery<StreamWithStats[]>({
     queryKey: ['/api/servers', selectedServer?.id, 'streams'],
-    queryFn: () => api.getServerStreams(selectedServer!.id),
+    queryFn: async () => {
+      console.log('Fetching streams for server:', selectedServer?.id);
+      const response = await api.getServerStreams(selectedServer!.id);
+      console.log('Streams response:', response);
+      return response;
+    },
     enabled: !!selectedServer,
   });
+
+  // Show error toast if stream fetch fails
+  useEffect(() => {
+    if (streamsError) {
+      toast({
+        title: "Error",
+        description: streamsError instanceof Error ? streamsError.message : "Failed to fetch streams",
+        variant: "destructive",
+      });
+    }
+  }, [streamsError, toast]);
 
   const form = useForm<z.infer<typeof serverSchema>>({
     resolver: zodResolver(serverSchema),

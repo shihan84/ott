@@ -300,7 +300,7 @@ export class StreamStatisticsService {
     try {
       const response = await flussonicService.makeAuthenticatedRequest<FlussonicStreamsResponse>(
         server,
-        '/streams',
+        '/streamer/api/v3/streams',
         { 
           method: 'GET',
           headers: {
