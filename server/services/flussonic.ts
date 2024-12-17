@@ -1,3 +1,4 @@
+import type { Agent } from 'node:https';
 import { servers } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
@@ -25,13 +26,21 @@ export class FlussonicService {
       // Flussonic uses Basic Auth with username and password
       const basicAuth = Buffer.from(`${server.username}:${server.password}`).toString('base64');
       
-      // First try to authenticate using the session API
-      const response = await fetch(`${server.url}/flussonic/api/sessions`, {
+      // Ensure URL is properly formatted and handle SSL
+      const apiUrl = new URL('/flussonic/api/sessions', server.url).toString();
+      console.log(`Attempting to authenticate with Flussonic server at: ${apiUrl}`);
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Basic ${basicAuth}`,
           'Accept': 'application/json',
         },
+        // Allow self-signed certificates in development
+        agent: process.env.NODE_ENV === 'development' ? 
+          new (await import('node:https')).Agent({
+            rejectUnauthorized: false
+          }) : undefined
       });
 
       if (!response.ok) {
@@ -110,13 +119,22 @@ export class FlussonicService {
         
         console.log(`Making request to Flussonic API: ${fullUrl}`);
         
-        const response = await fetch(`${server.url}/flussonic${endpoint}`, {
+        // Ensure URL is properly formatted and handle SSL
+        const apiUrl = new URL(`/flussonic${endpoint}`, server.url).toString();
+        console.log(`Making request to Flussonic API: ${apiUrl}`);
+        
+        const response = await fetch(apiUrl, {
           ...options,
           headers: {
             ...options.headers,
             'Authorization': `Basic ${Buffer.from(`${server.username}:${server.password}`).toString('base64')}`,
             'Accept': 'application/json',
           },
+          // Allow self-signed certificates in development
+          agent: process.env.NODE_ENV === 'development' ? 
+            new (await import('node:https')).Agent({
+              rejectUnauthorized: false
+            }) : undefined
         });
 
         if (!response.ok) {
