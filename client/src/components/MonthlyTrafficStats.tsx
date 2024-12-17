@@ -1,16 +1,9 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatBytes } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
-
-interface TrafficData {
-  month: string;
-  bytesIn: number;
-  bytesOut: number;
-}
 
 interface MonthlyTrafficStatsProps {
   streamId: number;
@@ -22,12 +15,15 @@ export default function MonthlyTrafficStats({ streamId }: MonthlyTrafficStatsPro
     queryFn: () => api.getStreamTraffic(streamId),
   });
 
-  const chartData = useMemo(() => {
+  const tableData = useMemo(() => {
     if (!stats) return [];
     return stats.map(stat => ({
-      month: `${stat.year}-${String(stat.month).padStart(2, '0')}`,
-      bytesIn: Number(stat.bytesIn),
-      bytesOut: Number(stat.bytesOut),
+      month: new Date(stat.year, stat.month - 1).toLocaleString('default', { 
+        month: 'long', 
+        year: 'numeric' 
+      }),
+      totalBytes: Number(stat.bytesIn) + Number(stat.bytesOut),
+      lastUpdated: new Date(stat.lastUpdated).toLocaleString(),
     }));
   }, [stats]);
 
@@ -40,26 +36,25 @@ export default function MonthlyTrafficStats({ streamId }: MonthlyTrafficStatsPro
   }
 
   return (
-    <div className="h-[300px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={chartData}>
-          <XAxis dataKey="month" />
-          <YAxis tickFormatter={(value) => formatBytes(value)} />
-          <Tooltip 
-            formatter={(value: number) => formatBytes(value)}
-            labelFormatter={(label) => {
-              const [year, month] = label.split('-');
-              return `${new Date(Number(year), Number(month) - 1).toLocaleString('default', { 
-                month: 'long', 
-                year: 'numeric' 
-              })}`;
-            }}
-          />
-          <Legend />
-          <Bar name="Input Traffic" dataKey="bytesIn" fill="var(--chart-1)" />
-          <Bar name="Output Traffic" dataKey="bytesOut" fill="var(--chart-2)" />
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="relative">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Month</TableHead>
+            <TableHead>Total Data Transfer</TableHead>
+            <TableHead>Last Updated</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {tableData.map((row, index) => (
+            <TableRow key={index}>
+              <TableCell>{row.month}</TableCell>
+              <TableCell>{formatBytes(row.totalBytes)}</TableCell>
+              <TableCell className="text-muted-foreground">{row.lastUpdated}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
