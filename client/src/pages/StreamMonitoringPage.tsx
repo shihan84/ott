@@ -107,7 +107,10 @@ export default function StreamMonitoringPage() {
     }
 
     const baseUrl = stream.server.url.replace(/\/$/, '');
-    const url = `${baseUrl}/${stream.streamKey}/index.m3u8`;
+    // Ensure baseUrl doesn't have http:// or https:// twice
+    const cleanBaseUrl = baseUrl.replace(/^https?:\/\//, '');
+    // Construct proper HLS URL with protocol
+    const url = `${window.location.protocol}//${cleanBaseUrl}/live/${stream.streamKey}/index.m3u8`;
     console.log('Generated stream URL:', url);
     return url;
   })();
@@ -118,7 +121,11 @@ export default function StreamMonitoringPage() {
     serverUrl: stream?.server?.url,
     streamKey: stream?.streamKey,
     isAlive: stream?.streamStatus?.stats.alive,
-    streamStatus: stream?.streamStatus
+    streamStatus: stream?.streamStatus,
+    protocol: window.location.protocol,
+    constructedUrl: stream?.server?.url ? 
+      `${window.location.protocol}//${stream.server.url.replace(/^https?:\/\//, '')}/live/${stream.streamKey}/index.m3u8` 
+      : 'Unable to construct URL'
   });
   
   // Get available video qualities from media info
