@@ -224,7 +224,7 @@ export default function StreamMonitoringPage() {
       {stream && (
         <Card>
           <CardHeader>
-            <CardTitle>Traffic History</CardTitle>
+            <CardTitle>Monthly Traffic Statistics</CardTitle>
           </CardHeader>
           <CardContent>
             <MonthlyTrafficStats streamId={stream.id} />

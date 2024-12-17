@@ -487,7 +487,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const streamId = parseInt(req.params.streamId);
       console.log('Fetching traffic stats for stream:', streamId);
-      const monthsToShow = 6; // Show last 6 months
+      const monthsToShow = 12; // Show last 12 months
       
       // Calculate date range
       const now = new Date();
