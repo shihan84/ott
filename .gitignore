@@ -16,7 +16,8 @@ yarn-error.log*
 .idea/
 *.log
 coverage/
-public/thumbnails/
+public/thumbnails/*
+!public/thumbnails/.gitkeep
 # Security
 .env.*
 *.pem
