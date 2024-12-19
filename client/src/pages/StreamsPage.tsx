@@ -144,7 +144,7 @@ export default function StreamsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {stream.streamStatus?.stats.alive && stream.streamStatus?.stats.opened_at
+                      {stream.streamStatus?.stats?.opened_at
                         ? formatDistanceToNow(new Date(stream.streamStatus.stats.opened_at * 1000), { addSuffix: true })
                         : 'Offline'
                       }
