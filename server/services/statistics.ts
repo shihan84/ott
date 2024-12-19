@@ -1,7 +1,7 @@
 import { db } from "@db";
 import { servers } from "@db/schema";
 import { flussonicService } from "./flussonic";
-import type { FlussonicStream } from "./flussonic";
+import type { FlussonicStream } from "../services/flussonic";
 
 interface ServerStatistics {
   serverId: number;

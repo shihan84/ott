@@ -78,4 +78,21 @@ export const api = {
   // Get all permitted streams for the current user
   getPermittedStreams: () =>
     fetchApi<StreamWithStats[]>('/streams/permitted'),
+    
+  // Get server health statistics
+  getServersHealth: () =>
+    fetchApi<Array<{
+      serverId: number;
+      serverName: string;
+      totalBandwidth: number;
+      activeStreams: number;
+      cpuUsage: number;
+      memoryUsage: number;
+      streamHealth: {
+        healthy: number;
+        warning: number;
+        error: number;
+      };
+      timestamp: Date;
+    }>>('/api/servers/statistics'),
 };

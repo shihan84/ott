@@ -7,6 +7,7 @@ import { users, servers, streams, permissions, trafficStats, type User } from "@
 import { eq, sql, and, between } from "drizzle-orm";
 import type { FlussonicStreamsResponse } from "./flussonic";
 import { flussonicService, StreamStatisticsService } from "./services/flussonic";
+import { statisticsService } from "./services/statistics";
 import { crypto } from "./auth";
 import { ThumbnailService } from "./services/thumbnail";
 import express from "express";
@@ -560,6 +561,17 @@ export function registerRoutes(app: Express): Server {
       timestamp: new Date().toISOString(),
       uptime: process.uptime()
     });
+  });
+
+  // Server Statistics endpoints
+  app.get("/api/servers/statistics", requireAuth, async (_req, res) => {
+    try {
+      const stats = await statisticsService.getAggregatedStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching server statistics:', error);
+      res.status(500).send("Failed to fetch server statistics");
+    }
   });
 
   // Serve thumbnails statically

@@ -53,8 +53,7 @@ function MetricCard({
         {showProgress && typeof value === 'number' && (
           <Progress 
             value={value} 
-            className="mt-2"
-            indicatorClassName={status === 'error' ? 'bg-red-500' : undefined}
+            className={`mt-2 ${status === 'error' ? 'bg-red-500' : ''}`}
           />
         )}
       </CardContent>
@@ -63,9 +62,9 @@ function MetricCard({
 }
 
 export default function ServerHealth() {
-  const { data: servers, isLoading, error } = useQuery<ServerWithHealth[]>({
-    queryKey: ['/api/servers/health'],
-    queryFn: () => api.getServersHealth(),
+  const { data: servers, isLoading, error } = useQuery({
+    queryKey: ['/api/servers/statistics'],
+    queryFn: api.getServersHealth,
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
