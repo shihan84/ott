@@ -1,11 +1,16 @@
 import { useParams } from 'wouter';
 import { useUser } from '@/hooks/use-user';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Loader2 } from 'lucide-react';
-// Monthly traffic stats import removed for future update
+import { ChevronLeft, Loader2, Plus } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { useLocation } from 'wouter';
 import { Activity, Users, Wifi } from 'lucide-react';
 import type { StreamWithStats, MediaTrack } from '@/types';
@@ -13,6 +18,13 @@ import { api } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
 import StreamPlayer from '@/components/StreamPlayer';
 import { useToast } from '@/hooks/use-toast';
+
+const pushFormSchema = z.object({
+  url: z.string().url('Please enter a valid URL')
+    .regex(/^(rtmp|rtmps):\/\//, 'URL must start with rtmp:// or rtmps://')
+});
+
+type PushFormValues = z.infer<typeof pushFormSchema>;
 
 function formatBitrate(bitrate: number | undefined): string {
   if (!bitrate || typeof bitrate !== 'number') return 'N/A';
@@ -52,6 +64,33 @@ export default function StreamMonitoringPage() {
   const [, setLocation] = useLocation();
   const { serverId, streamId } = useParams();
   const { user } = useUser();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  const form = useForm<PushFormValues>({
+    resolver: zodResolver(pushFormSchema),
+    defaultValues: {
+      url: '',
+    },
+  });
+
+  const onSubmit = async (values: PushFormValues) => {
+    try {
+      await api.addStreamPush(parseInt(streamId!), values.url);
+      form.reset();
+      await queryClient.invalidateQueries(['/api/streams', streamId]);
+      toast({
+        title: "Success",
+        description: "Push destination added successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to add push destination",
+        variant: "destructive",
+      });
+    }
+  };
   
   const { data: stream, isLoading } = useQuery<StreamWithStats>({
     queryKey: ['/api/streams', streamId],
@@ -240,43 +279,93 @@ export default function StreamMonitoringPage() {
               </div>
             </div>
             
-            {/* Stream Push Information */}
-            <div className="mt-6 border-t pt-4">
-              <h4 className="font-medium mb-2">Push Destinations</h4>
-              {stream.streamStatus?.pushes?.length ? (
-                <div className="space-y-4">
-                  {stream.streamStatus.pushes.map((push, index) => (
-                    <div key={push.stats.id || index} className="bg-accent/50 p-3 rounded-lg">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="break-all">
-                          <p className="text-sm font-medium">{push.url}</p>
-                          <Badge variant={push.stats.status === 'running' ? 'default' : 'secondary'} className="mt-1">
-                            {push.stats.status}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 mt-2">
-                        <div>
-                          <span className="text-xs text-muted-foreground">Transferred</span>
-                          <p className="text-sm font-medium">{formatBytes(push.stats.bytes)}</p>
-                        </div>
-                        <div>
-                          <span className="text-xs text-muted-foreground">Retries</span>
-                          <p className="text-sm font-medium">{push.stats.retries || 0}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No push destinations configured</p>
-              )}
-            </div>
+            
           </CardContent>
         </Card>
       </div>
 
-      {/* Monthly Traffic Stats section removed for future update */}
+      <Tabs defaultValue="stats" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="stats">Stream Stats</TabsTrigger>
+          <TabsTrigger value="push">Push Management</TabsTrigger>
+        </TabsList>
+        <TabsContent value="stats">
+          <Card>
+            <CardHeader>
+              <CardTitle>Stream Statistics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Existing stats content */}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="push">
+          <Card>
+            <CardHeader>
+              <CardTitle>Push Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Add New Push Form */}
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Push Destination URL</FormLabel>
+                          <FormControl>
+                            <Input placeholder="rtmp://destination.com/live/stream" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" className="w-full">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Push Destination
+                    </Button>
+                  </form>
+                </Form>
+
+                {/* Existing Push Destinations */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Active Push Destinations</h3>
+                  {stream.streamStatus?.pushes?.length ? (
+                    <div className="space-y-4">
+                      {stream.streamStatus.pushes.map((push, index) => (
+                        <div key={push.stats.id || index} className="bg-accent/50 p-3 rounded-lg">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="break-all">
+                              <p className="text-sm font-medium">{push.url}</p>
+                              <Badge variant={push.stats.status === 'running' ? 'default' : 'secondary'} className="mt-1">
+                                {push.stats.status}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 mt-2">
+                            <div>
+                              <span className="text-xs text-muted-foreground">Transferred</span>
+                              <p className="text-sm font-medium">{formatBytes(push.stats.bytes)}</p>
+                            </div>
+                            <div>
+                              <span className="text-xs text-muted-foreground">Retries</span>
+                              <p className="text-sm font-medium">{push.stats.retries || 0}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No push destinations configured</p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

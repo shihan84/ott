@@ -79,6 +79,19 @@ export const api = {
   getPermittedStreams: () =>
     fetchApi<StreamWithStats[]>('/streams/permitted'),
     
+  // Stream push management
+  addStreamPush: (streamId: number, url: string) =>
+    fetchApi<void>(`/streams/${streamId}/push`, {
+      method: 'POST',
+      body: JSON.stringify({ url })
+    }),
+  
+  removeStreamPush: (streamId: number, url: string) =>
+    fetchApi<void>(`/streams/${streamId}/push`, {
+      method: 'DELETE',
+      body: JSON.stringify({ url })
+    }),
+    
   // Get server health statistics
   getServersHealth: () =>
     fetchApi<Array<{
