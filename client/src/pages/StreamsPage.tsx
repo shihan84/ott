@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, Activity, Users, Wifi, ChevronLeft } from 'lucide-react';
-import { formatDistanceToNow, formatDistance } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import type { StreamWithStats } from '@/types';
 import { api } from '@/lib/api';
 
@@ -16,18 +16,7 @@ function formatBitrate(bitrate: number | undefined): string {
   return `${mbps.toFixed(2)} Mbps`;
 }
 
-function formatUptime(timestamp: number): string {
-  if (!timestamp) return 'Unknown';
-  const now = Date.now();
-  const startTime = timestamp * 1000; // Convert to milliseconds
-  const diffMs = now - startTime;
-  
-  // Convert to hours and minutes
-  const hours = Math.floor(diffMs / (1000 * 60 * 60));
-  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-  
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-}
+
 
 export default function StreamsPage() {
   const [, setLocation] = useLocation();
@@ -114,7 +103,6 @@ export default function StreamsPage() {
                   <TableHead>Status</TableHead>
                   <TableHead>Viewers</TableHead>
                   <TableHead>Bitrate</TableHead>
-                  <TableHead>Uptime</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -142,12 +130,6 @@ export default function StreamsPage() {
                         <Wifi className="w-4 h-4 mr-1" />
                         {formatBitrate(stream.streamStatus?.stats?.input_bitrate)}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {stream.streamStatus?.stats?.opened_at
-                        ? formatDistanceToNow(new Date(stream.streamStatus.stats.opened_at * 1000), { addSuffix: true })
-                        : 'Offline'
-                      }
                     </TableCell>
                   </TableRow>
                 ))}

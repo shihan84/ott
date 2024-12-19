@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 // Monthly traffic stats import removed for future update
 import { useLocation } from 'wouter';
-import { Activity, Users, Wifi, Clock } from 'lucide-react';
+import { Activity, Users, Wifi } from 'lucide-react';
 import type { StreamWithStats, MediaTrack } from '@/types';
 import { api } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
@@ -212,21 +212,7 @@ export default function StreamMonitoringPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-primary" />
-              <h3 className="font-medium">Uptime</h3>
-            </div>
-            <p className="mt-2 text-2xl font-bold">
-              {stream.streamStatus?.stats.alive && stream.streamStatus?.stats.opened_at
-                ? formatDistanceToNow(new Date(stream.streamStatus.stats.opened_at * 1000), { addSuffix: true })
-                : 'Offline'
-              }
-            </p>
-            <p className="text-sm text-muted-foreground">Hours:Minutes</p>
-          </CardContent>
-        </Card>
+        
 
         <Card>
           <CardContent className="pt-6">
