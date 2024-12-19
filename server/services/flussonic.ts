@@ -212,7 +212,7 @@ export class FlussonicService {
       // Call Flussonic API to add push destination
       await this.makeAuthenticatedRequest(
         server,
-        `/streamer/api/v3/streams/${streamKey}/push_targets`,
+        `/flussonic/api/streams/${streamKey}/push_targets`,
         {
           method: 'POST',
           headers: {
@@ -243,7 +243,7 @@ export class FlussonicService {
       // Call Flussonic API to remove push destination
       await this.makeAuthenticatedRequest(
         server,
-        `/streamer/api/v3/streams/${streamKey}/push_targets`,
+        `/flussonic/api/streams/${streamKey}/push_targets`,
         {
           method: 'DELETE',
           headers: {
