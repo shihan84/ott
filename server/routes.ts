@@ -475,6 +475,95 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Stream routes
+  // Stream push management endpoints
+  app.post("/api/streams/:streamId/push", requireAuth, async (req, res) => {
+    try {
+      const streamId = parseInt(req.params.streamId);
+      const { url } = req.body;
+
+      // Validate request body
+      if (!url || typeof url !== 'string') {
+        return res.status(400).send("URL is required and must be a string");
+      }
+
+      if (!url.match(/^(rtmp|rtmps):\/\//)) {
+        return res.status(400).send("URL must start with rtmp:// or rtmps://");
+      }
+
+      // Get stream details
+      const [stream] = await db
+        .select()
+        .from(streams)
+        .where(eq(streams.id, streamId))
+        .limit(1);
+
+      if (!stream) {
+        return res.status(404).send("Stream not found");
+      }
+
+      // Get server details
+      const [server] = await db
+        .select()
+        .from(servers)
+        .where(eq(servers.id, stream.serverId))
+        .limit(1);
+
+      if (!server) {
+        return res.status(404).send("Server not found");
+      }
+
+      // Add push destination using Flussonic service
+      await flussonicService.addPushDestination(server, stream.streamKey, url);
+
+      res.json({ message: "Push destination added successfully" });
+    } catch (error) {
+      console.error('Error adding push destination:', error);
+      res.status(500).send(error instanceof Error ? error.message : "Failed to add push destination");
+    }
+  });
+
+  app.delete("/api/streams/:streamId/push", requireAuth, async (req, res) => {
+    try {
+      const streamId = parseInt(req.params.streamId);
+      const { url } = req.body;
+
+      // Validate request body
+      if (!url || typeof url !== 'string') {
+        return res.status(400).send("URL is required and must be a string");
+      }
+
+      // Get stream details
+      const [stream] = await db
+        .select()
+        .from(streams)
+        .where(eq(streams.id, streamId))
+        .limit(1);
+
+      if (!stream) {
+        return res.status(404).send("Stream not found");
+      }
+
+      // Get server details
+      const [server] = await db
+        .select()
+        .from(servers)
+        .where(eq(servers.id, stream.serverId))
+        .limit(1);
+
+      if (!server) {
+        return res.status(404).send("Server not found");
+      }
+
+      // Remove push destination using Flussonic service
+      await flussonicService.removePushDestination(server, stream.streamKey, url);
+
+      res.json({ message: "Push destination removed successfully" });
+    } catch (error) {
+      console.error('Error removing push destination:', error);
+      res.status(500).send(error instanceof Error ? error.message : "Failed to remove push destination");
+    }
+  });
+
 
   app.post("/api/streams", requireAdmin, async (req, res) => {
     const { serverId, name, streamKey } = req.body;

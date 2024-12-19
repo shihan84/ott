@@ -201,6 +201,67 @@ export class FlussonicService {
     }
   }
 
+  async addPushDestination(
+    server: typeof servers.$inferSelect,
+    streamKey: string,
+    pushUrl: string
+  ): Promise<void> {
+    try {
+      console.log(`Adding push destination for stream ${streamKey} to ${pushUrl}`);
+      
+      // Call Flussonic API to add push destination
+      await this.makeAuthenticatedRequest(
+        server,
+        `/streamer/api/v3/streams/${streamKey}/push_targets`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            url: pushUrl,
+            enabled: true
+          })
+        }
+      );
+      
+      console.log('Push destination added successfully');
+    } catch (error) {
+      console.error(`Failed to add push destination for stream ${streamKey}:`, error);
+      throw error;
+    }
+  }
+
+  async removePushDestination(
+    server: typeof servers.$inferSelect,
+    streamKey: string,
+    pushUrl: string
+  ): Promise<void> {
+    try {
+      console.log(`Removing push destination for stream ${streamKey}: ${pushUrl}`);
+      
+      // Call Flussonic API to remove push destination
+      await this.makeAuthenticatedRequest(
+        server,
+        `/streamer/api/v3/streams/${streamKey}/push_targets`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            url: pushUrl
+          })
+        }
+      );
+      
+      console.log('Push destination removed successfully');
+    } catch (error) {
+      console.error(`Failed to remove push destination for stream ${streamKey}:`, error);
+      throw error;
+    }
+  }
+
   async makeAuthenticatedRequest<T>(
     server: typeof servers.$inferSelect,
     endpoint: string,
