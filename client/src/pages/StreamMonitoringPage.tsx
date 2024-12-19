@@ -2,6 +2,7 @@ import { useParams } from 'wouter';
 import { useUser } from '@/hooks/use-user';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 // Monthly traffic stats import removed for future update
@@ -218,7 +219,7 @@ export default function StreamMonitoringPage() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
               <Activity className="w-5 h-5 text-primary" />
-              <h3 className="font-medium">Monthly Traffic</h3>
+              <h3 className="font-medium">Traffic & Push Status</h3>
             </div>
             <p className="mt-2 text-2xl font-bold">
               {stream.streamStatus?.stats ? formatBytes(stream.streamStatus.stats.bytes_in + stream.streamStatus.stats.bytes_out) : 'N/A'}
@@ -237,6 +238,39 @@ export default function StreamMonitoringPage() {
                   {stream.streamStatus?.stats ? formatBytes(stream.streamStatus.stats.bytes_out) : 'N/A'}
                 </p>
               </div>
+            </div>
+            
+            {/* Stream Push Information */}
+            <div className="mt-6 border-t pt-4">
+              <h4 className="font-medium mb-2">Push Destinations</h4>
+              {stream.streamStatus?.pushes?.length ? (
+                <div className="space-y-4">
+                  {stream.streamStatus.pushes.map((push, index) => (
+                    <div key={push.stats.id || index} className="bg-accent/50 p-3 rounded-lg">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="break-all">
+                          <p className="text-sm font-medium">{push.url}</p>
+                          <Badge variant={push.stats.status === 'running' ? 'default' : 'secondary'} className="mt-1">
+                            {push.stats.status}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <div>
+                          <span className="text-xs text-muted-foreground">Transferred</span>
+                          <p className="text-sm font-medium">{formatBytes(push.stats.bytes)}</p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-muted-foreground">Retries</span>
+                          <p className="text-sm font-medium">{push.stats.retries || 0}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No push destinations configured</p>
+              )}
             </div>
           </CardContent>
         </Card>

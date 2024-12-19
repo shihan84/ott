@@ -18,6 +18,28 @@ interface MediaInfo {
   tracks: MediaTrack[];
 }
 
+interface PushStats {
+  id: string;
+  status: string;
+  bytes: number;
+  payload: number;
+  opened_at: number;
+  fillers: number;
+  stuffing: number;
+  trimmed_bytes: number;
+  trimmed_frames: number;
+  encoded: number;
+  retries: number;
+  sys_fillers: number;
+  sys_payload: number;
+  sys_stuffing: number;
+}
+
+interface Push {
+  stats: PushStats;
+  url: string;
+}
+
 export interface StreamStats {
   name: string;
   stats: {
@@ -35,6 +57,7 @@ export interface StreamStats {
   template?: string;
   static: boolean;
   nomedia: boolean;
+  pushes?: Push[];
 }
 
 export interface StreamWithStats extends Stream {
