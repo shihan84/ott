@@ -10,6 +10,7 @@
 
 1. Install Node.js v20:
 ```bash
+# For Ubuntu 22.04 (jammy) or 20.04 (focal)
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 ```
