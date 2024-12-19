@@ -92,23 +92,23 @@ export default function ServerHealth() {
   return (
     <div className="space-y-8">
       {servers?.map((server) => (
-        <div key={server.id} className="space-y-4">
-          <h3 className="text-lg font-semibold">{server.name}</h3>
+        <div key={server.serverId} className="space-y-4">
+          <h3 className="text-lg font-semibold">{server.serverName}</h3>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <MetricCard
               title="Status"
-              value={server.health.status}
+              value={server.streamHealth.healthy > 0 ? 'online' : 'offline'}
               icon={Activity}
-              status={server.health.status === 'online' ? 'success' : 'error'}
+              status={server.streamHealth.healthy > 0 ? 'success' : 'error'}
             />
             <MetricCard
               title="CPU Usage"
-              value={`${server.health.cpuUsage}%`}
+              value={`${server.cpuUsage}%`}
               icon={Cpu}
               status={
-                server.health.cpuUsage > 90 
+                server.cpuUsage > 90 
                   ? 'error' 
-                  : server.health.cpuUsage > 70 
+                  : server.cpuUsage > 70 
                     ? 'warning' 
                     : 'success'
               }
@@ -116,12 +116,12 @@ export default function ServerHealth() {
             />
             <MetricCard
               title="Memory Usage"
-              value={`${server.health.memoryUsage}%`}
+              value={`${server.memoryUsage}%`}
               icon={Memory}
               status={
-                server.health.memoryUsage > 90 
+                server.memoryUsage > 90 
                   ? 'error' 
-                  : server.health.memoryUsage > 70 
+                  : server.memoryUsage > 70 
                     ? 'warning' 
                     : 'success'
               }
@@ -129,12 +129,12 @@ export default function ServerHealth() {
             />
             <MetricCard
               title="Active Streams"
-              value={server.health.activeStreams}
+              value={server.activeStreams}
               icon={Radio}
             />
             <MetricCard
               title="Total Bandwidth"
-              value={`${Math.round(server.health.totalBandwidth / 1024 / 1024)} Mbps`}
+              value={`${Math.round(server.totalBandwidth / 1024 / 1024)} Mbps`}
               icon={Signal}
             />
           </div>
