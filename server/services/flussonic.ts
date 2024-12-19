@@ -212,7 +212,7 @@ export class FlussonicService {
       // Call Flussonic API to add push destination
       await this.makeAuthenticatedRequest(
         server,
-        `/flussonic/api/streams/${streamKey}/push_targets`,
+        `/streamer/api/v3/stream/${streamKey}/push`,
         {
           method: 'POST',
           headers: {
@@ -220,7 +220,8 @@ export class FlussonicService {
           },
           body: JSON.stringify({
             url: pushUrl,
-            enabled: true
+            enabled: true,
+            backup: false
           })
         }
       );
@@ -243,15 +244,12 @@ export class FlussonicService {
       // Call Flussonic API to remove push destination
       await this.makeAuthenticatedRequest(
         server,
-        `/flussonic/api/streams/${streamKey}/push_targets`,
+        `/streamer/api/v3/stream/${streamKey}/push/${encodeURIComponent(pushUrl)}`,
         {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            url: pushUrl
-          })
+          }
         }
       );
       
@@ -268,6 +266,12 @@ export class FlussonicService {
     options: RequestInit = {},
     validateSchema: boolean = true
   ): Promise<T> {
+    console.log('Making authenticated request to Flussonic API:', {
+      url: new URL(endpoint, server.url).toString(),
+      method: options.method || 'GET',
+      body: options.body ? JSON.parse(options.body as string) : undefined,
+      validateSchema
+    });
     try {
       // Parse and validate the server URL
       const serverUrl = new URL(server.url);
