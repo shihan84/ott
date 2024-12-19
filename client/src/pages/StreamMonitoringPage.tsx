@@ -219,8 +219,8 @@ export default function StreamMonitoringPage() {
               <h3 className="font-medium">Uptime</h3>
             </div>
             <p className="mt-2 text-2xl font-bold">
-              {stream.streamStatus?.stats.alive && stream.streamStatus.stats.opened_at
-                ? formatUptime(stream.streamStatus.stats.opened_at)
+              {stream.streamStatus?.stats.alive && stream.streamStatus?.stats.opened_at
+                ? formatDistanceToNow(new Date(stream.streamStatus.stats.opened_at * 1000), { addSuffix: true })
                 : 'Offline'
               }
             </p>
